@@ -20,11 +20,11 @@ flowchart TD
     H --> I["isActive(serviceId, my address) → true/false"]
     H --> J["getEndDate(serviceId, my address) → date"]
 
-    style A fill:#e3f2fd,stroke:#90caf9
-    style E fill:#c8e6c9,stroke:#81c784
-    style G fill:#c8e6c9,stroke:#81c784
-    style I fill:#fff3e0,stroke:#ffb74d
-    style J fill:#fff3e0,stroke:#ffb74d
+    style A fill:#90caf9,stroke:#42a5f5,color:#0d47a1
+    style E fill:#66bb6a,stroke:#388e3c,color:#1b5e20
+    style G fill:#66bb6a,stroke:#388e3c,color:#1b5e20
+    style I fill:#ffb74d,stroke:#f57c00,color:#5d2f00
+    style J fill:#ffb74d,stroke:#f57c00,color:#5d2f00
 ```
 
 
