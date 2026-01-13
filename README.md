@@ -60,37 +60,36 @@ flowchart TD
 ### Bot/Keeper Flow
 
 ```mermaid
-
 flowchart TD
-    A["Start Bot Process\n(External Off-Chain Cron / Keeper)"] --> B["Query Contract for All Service IDs\n(using nextServiceId - 1)"]
+    A["Start Bot Process (External Off-Chain Cron / Keeper)"] --> B["Query Contract for All Service IDs (using nextServiceId - 1)"]
 
     B --> C{"For Each Service ID"}
 
     C -->|Loop| D["Call view: getServiceStatusSnapshot(serviceId)"]
 
-    D --> E{"Service paused?\n(empty list / flag)"}
+    D --> E{"Service paused? (empty list / flag)"}
 
     E -->|Yes → skip| F["Log: Paused - skipping"]
 
     E -->|No| G["For Each Subscriber in list"]
 
-    G -->|Loop| H{"isActive == false?\n(oracle time used)"}
+    G -->|Loop| H{"isActive == false? (oracle time used)"}
 
-    H -->|Yes| I["Log: Already expired\n(no write)"]
+    H -->|Yes| I["Log: Already expired (no write)"]
 
-    H -->|No| J{"daysRemaining ≤ threshold?\n(e.g. ≤ 7 days)"}
+    H -->|No| J{"daysRemaining ≤ threshold? (e.g. ≤ 7 days)"}
 
-    J -->|No| K["Log: Safe\n(no action)"]
+    J -->|No| K["Log: Safe (no action)"]
 
-    J -->|Yes| L["Check ETH balance\nweb3.eth.getBalance(subscriber)"]
+    J -->|Yes| L["Check ETH balance web3.eth.getBalance(subscriber)"]
 
-    L --> M{"Balance ≥ minRenewalCost?\n(e.g. 0.05 ETH)"}
+    L --> M{"Balance ≥ minRenewalCost? (e.g. 0.05 ETH)"}
 
     M -->|Yes| N["Call: flagRenewalNeeded(serviceId, subscriber, true)"]
 
-    M -->|No| O["Call: flagRenewalNeeded(…, true)\n+ set lowBalanceWarning = true"]
+    M -->|No| O["Call: flagRenewalNeeded(…, true) + set lowBalanceWarning = true"]
 
-    N --> P["Log: Flag SET\n(balance OK)"]
+    N --> P["Log: Flag SET (balance OK)"]
 
     O --> Q["Log: Flag SET + low balance"]
 
@@ -103,18 +102,18 @@ flowchart TD
 
     G -->|End subscribers| C
 
-    C -->|End all services| T["After processing:\nQuery contract total withdrawable fees\n(getCollectedFees() / pendingWithdrawals(admin))"]
+    C -->|End all services| T["After processing: Query contract total withdrawable fees (getCollectedFees() / pendingWithdrawals(admin))"]
 
-    T --> U{"withdrawable ETH ≥ ~50 USD?\n(current ≈ 0.015-0.016 ETH at ~$3,100-$3,200)"}
+    T --> U{"withdrawable ETH ≥ ~50 USD? (current ≈ 0.015-0.016 ETH at ~$3,100-$3,200)"}
 
-    U -->|No| V["Log: Collected fees below threshold\n(keep accumulating)"]
+    U -->|No| V["Log: Collected fees below threshold (keep accumulating)"]
 
-    U -->|Yes| W["Call contract:\nsweepFees() / withdrawToAdmin()\n(sends ETH to admin/treasury)"]
+    U -->|Yes| W["Call contract: sweepFees() / withdrawToAdmin() (sends ETH to admin/treasury)"]
 
-    W --> X["Log: Fees swept to admin\n(amount: XXX ETH ≈ $YYY)"]
+    W --> X["Log: Fees swept to admin (amount: XXX ETH ≈ $YYY)"]
 
     V --> S
-    X --> S["End Bot Cycle\n(Next run in 1-4 hours)"]
+    X --> S["End Bot Cycle (Next run in 1-4 hours)"]
 
 
     style A fill:#1976d2,stroke:#1565c0,stroke-width:2px,color:#ffffff,font-weight:bold
