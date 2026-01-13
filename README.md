@@ -129,7 +129,6 @@ flowchart TD
     style M fill:#0288d1,stroke:#0277bd,color:#ffffff
 
     style U fill:#0288d1,stroke:#0277bd,color:#ffffff
-    %% decision - sweep threshold
 
     style H fill:#455a64,stroke:#37474f,color:#ffffff
     style E fill:#455a64,stroke:#37474f,color:#ffffff
