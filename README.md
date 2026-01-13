@@ -57,3 +57,97 @@ flowchart TD
     classDef paused fill:#ef5350,stroke:#c62828
 ```
 
+### Bot/Keeper Flow
+
+```mermaid
+
+flowchart TD
+    A["Start Bot Process\n(External Off-Chain Cron / Keeper)"] --> B["Query Contract for All Service IDs\n(using nextServiceId - 1)"]
+
+    B --> C{"For Each Service ID"}
+
+    C -->|Loop| D["Call view: getServiceStatusSnapshot(serviceId)"]
+
+    D --> E{"Service paused?\n(empty list / flag)"}
+
+    E -->|Yes → skip| F["Log: Paused - skipping"]
+
+    E -->|No| G["For Each Subscriber in list"]
+
+    G -->|Loop| H{"isActive == false?\n(oracle time used)"}
+
+    H -->|Yes| I["Log: Already expired\n(no write)"]
+
+    H -->|No| J{"daysRemaining ≤ threshold?\n(e.g. ≤ 7 days)"}
+
+    J -->|No| K["Log: Safe\n(no action)"]
+
+    J -->|Yes| L["Check ETH balance\nweb3.eth.getBalance(subscriber)"]
+
+    L --> M{"Balance ≥ minRenewalCost?\n(e.g. 0.05 ETH)"}
+
+    M -->|Yes| N["Call: flagRenewalNeeded(serviceId, subscriber, true)"]
+
+    M -->|No| O["Call: flagRenewalNeeded(…, true)\n+ set lowBalanceWarning = true"]
+
+    N --> P["Log: Flag SET\n(balance OK)"]
+
+    O --> Q["Log: Flag SET + low balance"]
+
+    I --> R["Log entry"]
+    K --> R
+    P --> R
+    Q --> R
+
+    R --> G
+
+    G -->|End subscribers| C
+
+    C -->|End all services| T["After processing:\nQuery contract total withdrawable fees\n(getCollectedFees() / pendingWithdrawals(admin))"]
+
+    T --> U{"withdrawable ETH ≥ ~50 USD?\n(current ≈ 0.015-0.016 ETH at ~$3,100-$3,200)"}
+
+    U -->|No| V["Log: Collected fees below threshold\n(keep accumulating)"]
+
+    U -->|Yes| W["Call contract:\nsweepFees() / withdrawToAdmin()\n(sends ETH to admin/treasury)"]
+
+    W --> X["Log: Fees swept to admin\n(amount: XXX ETH ≈ $YYY)"]
+
+    V --> S
+    X --> S["End Bot Cycle\n(Next run in 1-4 hours)"]
+
+
+    style A fill:#1976d2,stroke:#1565c0,stroke-width:2px,color:#ffffff,font-weight:bold
+    style S fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#ffffff,font-weight:bold
+
+    style N fill:#388e3c,stroke:#2e7d32,color:#ffffff,font-weight:bold
+    style O fill:#f57c00,stroke:#ef6c00,color:#ffffff,font-weight:bold
+
+    style I fill:#d32f2f,stroke:#b71c1c,color:#ffffff,font-weight:bold
+    style F fill:#757575,stroke:#616161,color:#ffffff
+
+    style J fill:#0288d1,stroke:#0277bd,color:#ffffff
+    style M fill:#0288d1,stroke:#0277bd,color:#ffffff
+
+    style U fill:#0288d1,stroke:#0277bd,color:#ffffff
+    %% decision - sweep threshold
+
+    style H fill:#455a64,stroke:#37474f,color:#ffffff
+    style E fill:#455a64,stroke:#37474f,color:#ffffff
+
+    style P fill:#81c784,stroke:#66bb6a,color:#000000
+    style Q fill:#ffab91,stroke:#ff8a65,color:#000000
+    style K fill:#ce93d8,stroke:#ab47bc,color:#000000
+    style R fill:#eceff1,stroke:#b0bec5,color:#263238
+
+    style W fill:#7b1fa2,stroke:#6a1b9a,color:#ffffff,font-weight:bold
+    
+
+    style X fill:#ba68c8,stroke:#9c27b0,color:#000000
+    
+
+    style V fill:#b0bec5,stroke:#90a4ae,color:#000000
+    
+
+    style T fill:#546e7a,stroke:#455a64,color:#ffffff
+```    
