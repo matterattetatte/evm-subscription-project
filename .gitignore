@@ -1,3 +1,4 @@
 packages/contracts/cache
 packages/contracts/lib
 packages/contracts/out
+node_modules
