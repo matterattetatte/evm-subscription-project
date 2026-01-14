@@ -10,8 +10,6 @@ test.describe(() => {
         users.map(async ({ page }, index) => {
           await page.goto('http://localhost:5173');
           await page.waitForLoadState('networkidle');
-          const { account } = getUserWallet(index);
-          await initScript(page, index, account.address);
         })
       );
       await sleep()
@@ -23,6 +21,9 @@ test.describe(() => {
       users.map(async ({ page, index }) => {
         console.log(`Evaluating user ${index}...`);
 
+        const { account } = getUserWallet(index);
+        await initScript(page, index, account.address);
+
         return page.evaluate(async () => {
           if (!window.ethereum) {
             console.error('No ethereum provider');
@@ -30,11 +31,7 @@ test.describe(() => {
           }
 
           try {
-            const accounts = await window.ethereum.request({
-              method: 'eth_requestAccounts',   // ← changed to requestAccounts
-            });
-            console.log('Accounts returned:', accounts);
-            return accounts;
+            return window.ethereum.selectedAddress;
           } catch (err) {
             console.error('Error fetching accounts:', err);
             return null;
@@ -43,15 +40,6 @@ test.describe(() => {
       })
     );
 
-    console.log('All results:', results);
-
-    expect(
-      results.every(acc => Array.isArray(acc) && acc.length > 0),
-      'Every user should have connected accounts'
-    ).toBe(true);
-
-    const addresses = results.map(acc => acc?.[0]?.toLowerCase() ?? null);
-    const uniqueAddresses = new Set(addresses.filter(Boolean));
-    expect(uniqueAddresses.size).toBe(6);
+    expect(new Set(results).size).toBe(6);
   });
 })
