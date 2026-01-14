@@ -157,7 +157,7 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
         require(address(this).balance >= MIN_SWEEP_THRESHOLD, "Below minimum sweep threshold");
 
         uint256 amount = address(this).balance;
-        payable(msg.sender).transfer(amount);
+        payable(owner).transfer(amount);
 
         emit FeesSwept(amount);
     }
