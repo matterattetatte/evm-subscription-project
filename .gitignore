@@ -2,3 +2,5 @@ packages/contracts/cache
 packages/contracts/lib
 packages/contracts/out
 node_modules
+frontend/test-results
+frontend/playwright-report

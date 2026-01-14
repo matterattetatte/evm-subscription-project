@@ -3,28 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.126",
+    "@types/node": "^20.4.2",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
-    "viem": "^2.40.3",
-    "wagmi": "^3.0.2",
-    "@tanstack/react-query": "^5.59.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-scripts": "5.0.1",
-    "typescript": "^4.9.5",
+    "typescript": "^5.0.4",
+    "viem": "^2.40.3",
+    "wagmi": "^3.0.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev:e2e": "vite --mode e2e",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug"
   },
   "eslintConfig": {
     "extends": [
@@ -45,8 +48,11 @@
     ]
   },
   "devDependencies": {
+    "@playwright/experimental-ct-react": "^1.57.0",
+    "@playwright/test": "^1.57.0",
+    "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.18"
+    "vite": "^7.3.1"
   }
 }
