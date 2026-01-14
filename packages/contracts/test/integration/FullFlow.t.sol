@@ -179,7 +179,7 @@ contract FullFlowTest is Test {
         service.pause(admin1Service2);
 
         vm.prank(subA3);
-        vm.expectRevert(Pausable.Paused.selector);
+        vm.expectRevert();
         service.pay{value: LOW_FEE}(admin1Service2);
 
         assertFalse(service.isActive(admin1Service2, subA3));

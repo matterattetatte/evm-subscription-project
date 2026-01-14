@@ -3,12 +3,11 @@ pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./ITimeOracle.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./interfaces/ITimeOracle.sol";
 
 contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
-    bytes32 public constant DEFAULT_ADMIN_ROLE = DEFAULT_ADMIN_ROLE;
 
     ITimeOracle public immutable timeOracle;
 
@@ -28,7 +27,9 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
 
     mapping(uint256 => Service) public services;
     mapping(uint256 => mapping(address => Subscription)) public subscriptions;
-    mapping(uint256 => uint256) public serviceIdCounter;
+    mapping(uint256 => address[]) public serviceSubscribers;
+
+    uint256 public nextServiceId;
 
     uint256 public constant MIN_SWEEP_THRESHOLD = 0.016 ether;
 
@@ -49,7 +50,7 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
         require(_fee > 0, "Fee must be positive");
         require(_period > 0, "Period must be positive");
         
-        serviceId = ++serviceIdCounter[block.chainid];
+        serviceId = ++nextServiceId;
         services[serviceId] = Service({
             fee: _fee,
             period: _period,
@@ -97,38 +98,26 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
     }
 
     function getServiceStatusSnapshot(uint256 _serviceId) 
-        external 
-        view 
-        returns (address[] memory subscribers, bool[] memory activeStatus, uint256[] memory remainingDays) 
+        external view returns (address[] memory, bool[] memory, uint256[] memory) 
     {
-        Service memory service = services[_serviceId];
         uint256 currentTime = timeOracle.getCurrentTime();
+        address[] storage subscriberList = serviceSubscribers[_serviceId];
         
-        uint256 snapshotSize = 0;
-        for (uint256 i = 0; i < type(uint256).max; i++) {
-            if (subscriptions[_serviceId][address(i)].active) {
-                snapshotSize++;
-            } else {
-                break;
-            }
+        address[] memory subscribers = new address[](subscriberList.length);
+        bool[] memory activeStatus = new bool[](subscriberList.length);
+        uint256[] memory remainingDays = new uint256[](subscriberList.length);
+        
+        for (uint256 i = 0; i < subscriberList.length; i++) {
+            address subscriber = subscriberList[i];  // NO CAST NEEDED
+            Subscription memory sub = subscriptions[_serviceId][subscriber];
+            
+            subscribers[i] = subscriber;
+            activeStatus[i] = sub.active && sub.expiry > currentTime;
+            remainingDays[i] = sub.expiry > currentTime ? (sub.expiry - currentTime) / 1 days : 0;
         }
-
-        subscribers = new address[](snapshotSize);
-        activeStatus = new bool[](snapshotSize);
-        remainingDays = new uint256[](snapshotSize);
-
-        uint256 index = 0;
-        for (uint256 i = 0; i < type(uint256).max && index < snapshotSize; i++) {
-            Subscription memory sub = subscriptions[_serviceId][address(i)];
-            if (sub.active) {
-                subscribers[index] = address(i);
-                activeStatus[index] = sub.expiry > currentTime;
-                remainingDays[index] = (sub.expiry > currentTime) ? (sub.expiry - currentTime) / 1 days : 0;
-                index++;
-            }
-        }
+        
+        return (subscribers, activeStatus, remainingDays);
     }
-
     function flagRenewalNeeded(uint256 _serviceId, address _subscriber, bool _needsRenewal, bool _lowBalance) external {
         require(hasRole(KEEPER_ROLE, msg.sender), "Only keeper");
         require(services[_serviceId].owner != address(0), "Service does not exist");
@@ -159,6 +148,10 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
         return services[_serviceId].totalEarnings;
     }
 
+    function getEndDate(uint256 _serviceId, address _subscriber) external view returns (uint256) {
+        return subscriptions[_serviceId][_subscriber].expiry;
+    }
+
     function sweepFees() external {
         require(hasRole(KEEPER_ROLE, msg.sender), "Only keeper");
         require(address(this).balance >= MIN_SWEEP_THRESHOLD, "Below minimum sweep threshold");
@@ -168,6 +161,14 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
 
         emit FeesSwept(amount);
     }
+
+    function changeFee(uint256 _serviceId, uint256 _newFee) external {
+        require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
+        require(_newFee > 0, "Fee must be positive");
+        
+        services[_serviceId].fee = _newFee;
+    }
+
 
     function pause(uint256 _serviceId) external {
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");

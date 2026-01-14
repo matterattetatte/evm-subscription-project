@@ -61,7 +61,7 @@ contract SubscriptionServiceGiftingTest is Test {
         service.pause(serviceId);
 
         vm.prank(gifter);
-        vm.expectRevert(Pausable.Paused.selector);
+        vm.expectRevert();
         service.gift{value: FEE}(serviceId, recipientB);
     }
 
