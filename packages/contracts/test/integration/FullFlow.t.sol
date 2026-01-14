@@ -226,7 +226,7 @@ contract FullFlowTest is Test {
         }
     }
 
-    function verifyFinalState() internal {
+    function verifyFinalState() view internal {
         assertEq(service.getCollectedEarnings(admin1Service1), 0);
         assertEq(service.getCollectedEarnings(admin2Service2), 0);
     }

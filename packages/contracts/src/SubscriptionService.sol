@@ -2,11 +2,10 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ITimeOracle.sol";
 
-contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
+contract SubscriptionService is AccessControl, ReentrancyGuard {
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     ITimeOracle public immutable timeOracle;
@@ -16,6 +15,7 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
         uint256 period;
         address owner;
         uint256 totalEarnings;
+        bool paused;
     }
 
     struct Subscription {
@@ -40,6 +40,11 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
     event EarningsWithdrawn(address indexed owner, uint256 indexed serviceId, uint256 amount);
     event FeesSwept(uint256 amount);
 
+    modifier whenServiceNotPaused(uint256 _serviceId) {
+        require(!services[_serviceId].paused, "Service paused");
+        _;
+    }
+
     constructor(address _keeper, address _timeOracle) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(KEEPER_ROLE, _keeper);
@@ -55,18 +60,19 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
             fee: _fee,
             period: _period,
             owner: msg.sender,
-            totalEarnings: 0
+            totalEarnings: 0,
+            paused: false
         });
 
         emit ServiceCreated(serviceId, msg.sender, _fee, _period);
         return serviceId;
     }
 
-    function pay(uint256 _serviceId) external payable whenNotPaused nonReentrant {
+    function pay(uint256 _serviceId) external payable whenServiceNotPaused(_serviceId) nonReentrant {
         _subscribe(msg.sender, _serviceId, msg.value);
     }
 
-    function gift(uint256 _serviceId, address _beneficiary) external payable whenNotPaused nonReentrant {
+    function gift(uint256 _serviceId, address _beneficiary) external payable whenServiceNotPaused(_serviceId) nonReentrant {
         require(_beneficiary != address(0), "Invalid beneficiary");
         _subscribe(_beneficiary, _serviceId, msg.value);
     }
@@ -74,12 +80,24 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
     function _subscribe(address _subscriber, uint256 _serviceId, uint256 _value) internal {
         Service storage service = services[_serviceId];
         require(service.owner != address(0), "Service does not exist");
-        require(_value == service.fee, "Incorrect fee");
+        
+        // Allow multiples of the base fee
+        require(_value >= service.fee && _value % service.fee == 0, "Incorrect fee");
+        
+        uint256 periods = _value / service.fee;  // How many periods they paid for
+
+        address[] storage subscriberList = serviceSubscribers[_serviceId];
+        if (!subscriptions[_serviceId][_subscriber].active) {
+            subscriberList.push(_subscriber);
+        }
 
         uint256 currentTime = timeOracle.getCurrentTime();
-        uint256 newExpiry = subscriptions[_serviceId][_subscriber].expiry > currentTime 
-            ? subscriptions[_serviceId][_subscriber].expiry + service.period
-            : currentTime + service.period;
+        uint256 newExpiry;
+        if (subscriptions[_serviceId][_subscriber].expiry > 0) {
+            newExpiry = subscriptions[_serviceId][_subscriber].expiry + service.period * periods;
+        } else {
+            newExpiry = currentTime + service.period * periods;
+        }
 
         subscriptions[_serviceId][_subscriber] = Subscription({
             expiry: newExpiry,
@@ -131,6 +149,35 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
         emit RenewalFlagged(_serviceId, _subscriber, _lowBalance);
     }
 
+    function sweepFees() external {
+        require(hasRole(KEEPER_ROLE, msg.sender), "Only keeper");
+        require(address(this).balance >= MIN_SWEEP_THRESHOLD, "Below minimum sweep threshold");
+
+        uint256 totalSwept = 0;
+        uint256 servicesLength = nextServiceId;
+        
+        for (uint256 i = 1; i <= servicesLength; i++) {
+            Service storage service = services[i];
+            if (service.owner != address(0) && service.totalEarnings > 0) {
+                totalSwept += service.totalEarnings;
+                payable(service.owner).transfer(service.totalEarnings);
+                service.totalEarnings = 0;
+            }
+        }
+        
+        require(totalSwept > 0, "No earnings to sweep");
+        emit FeesSwept(totalSwept);  // Single event for total amount
+    }
+
+
+    function getCollectedEarnings(uint256 _serviceId) external view returns (uint256) {
+        return services[_serviceId].totalEarnings;
+    }
+
+    function getEndDate(uint256 _serviceId, address _subscriber) external view returns (uint256) {
+        return subscriptions[_serviceId][_subscriber].expiry;
+    }
+
     function withdrawEarnings(uint256 _serviceId) external nonReentrant {
         Service storage service = services[_serviceId];
         require(service.owner == msg.sender, "Not service owner");
@@ -144,25 +191,9 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
         emit EarningsWithdrawn(msg.sender, _serviceId, amount);
     }
 
-    function getCollectedEarnings(uint256 _serviceId) external view returns (uint256) {
-        return services[_serviceId].totalEarnings;
-    }
-
-    function getEndDate(uint256 _serviceId, address _subscriber) external view returns (uint256) {
-        return subscriptions[_serviceId][_subscriber].expiry;
-    }
-
-    function sweepFees() external {
-        require(hasRole(KEEPER_ROLE, msg.sender), "Only keeper");
-        require(address(this).balance >= MIN_SWEEP_THRESHOLD, "Below minimum sweep threshold");
-
-        uint256 amount = address(this).balance;
-        payable(owner).transfer(amount);
-
-        emit FeesSwept(amount);
-    }
 
     function changeFee(uint256 _serviceId, uint256 _newFee) external {
+        require(services[_serviceId].owner != address(0), "Service does not exist");
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
         require(_newFee > 0, "Fee must be positive");
         
@@ -171,12 +202,16 @@ contract SubscriptionService is AccessControl, Pausable, ReentrancyGuard {
 
 
     function pause(uint256 _serviceId) external {
+        require(services[_serviceId].owner != address(0), "Service does not exist");
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
-        _pause();
+        require(!services[_serviceId].paused, "Already paused");  // Prevent double-pause
+        services[_serviceId].paused = true;
     }
 
     function resume(uint256 _serviceId) external {
+        require(services[_serviceId].owner != address(0), "Service does not exist");
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
-        _unpause();
+        require(services[_serviceId].paused, "Not paused");  // Check per-service pause
+        services[_serviceId].paused = false;
     }
 }

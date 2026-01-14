@@ -97,7 +97,7 @@ contract SubscriptionServiceGiftingTest is Test {
 
     function test_GiftToZeroAddress_Reverts() public {
         vm.prank(gifter);
-        vm.expectRevert("Invalid recipient");
+        vm.expectRevert("Invalid beneficiary");
         service.gift{value: FEE}(serviceId, address(0));
     }
 
