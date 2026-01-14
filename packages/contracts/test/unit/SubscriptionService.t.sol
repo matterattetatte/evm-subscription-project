@@ -123,4 +123,10 @@ contract SubscriptionServiceTest is Test {
         service.flagRenewalNeeded(serviceId, alice, true, false);
     }
 
+    function test_ReceiveReverts() public {
+        vm.prank(alice);
+        (bool success, ) = address(service).call{value: 1 ether}("");
+        assertFalse(success);
+    }
+
 }
