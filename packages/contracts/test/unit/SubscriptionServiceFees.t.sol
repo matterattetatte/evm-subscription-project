@@ -123,7 +123,7 @@ contract SubscriptionServiceFeesTest is Test {
         service.pay{value: 0.01 ether}(serviceIdA);  // < 0.016 ether
 
         vm.prank(keeper);
-        vm.expectRevert("Below minimum sweep threshold");
+        vm.expectRevert("BelowSweepThreshold()");
         service.sweepFees();
     }
 
@@ -132,7 +132,7 @@ contract SubscriptionServiceFeesTest is Test {
         service.pay{value: FEE_A}(serviceIdA);
 
         vm.prank(nonKeeper);
-        vm.expectRevert("Only keeper");
+        vm.expectRevert("Unauthorized()");
         service.sweepFees();
     }
 
@@ -172,7 +172,7 @@ contract SubscriptionServiceFeesTest is Test {
         service.pay{value: FEE_B}(serviceIdB);
 
         vm.prank(keeper);
-        vm.expectRevert("Below minimum sweep threshold");
+        vm.expectRevert("BelowSweepThreshold()");
         service.sweepFees();
     }
 }

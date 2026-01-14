@@ -84,7 +84,7 @@ contract SubscriptionServiceAdminTest is Test {
         service.changeFee(serviceId, NEW_FEE);
 
         vm.prank(userB);
-        vm.expectRevert("Incorrect fee");
+        vm.expectRevert("IncorrectFee()");
         service.pay{value: INITIAL_FEE}(serviceId);
 
         vm.prank(userB);

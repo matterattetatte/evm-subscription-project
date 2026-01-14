@@ -51,7 +51,7 @@ contract SubscriptionServiceTest is Test {
 
     function test_PayWithIncorrectAmount_Reverts() public {
         vm.prank(alice);
-        vm.expectRevert("Incorrect fee"); 
+        vm.expectRevert("IncorrectFee()"); 
         service.pay{value: FEE - 1 wei}(serviceId);
     }
 
@@ -119,7 +119,7 @@ contract SubscriptionServiceTest is Test {
 
     function test_NonKeeperCannotFlagRenewalNeeded() public {
         vm.prank(alice);
-        vm.expectRevert("Only keeper");
+        vm.expectRevert("Unauthorized()");
         service.flagRenewalNeeded(serviceId, alice, true, false);
     }
 

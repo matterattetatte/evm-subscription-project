@@ -8,6 +8,13 @@ import "./interfaces/ITimeOracle.sol";
 contract SubscriptionService is AccessControl, ReentrancyGuard {
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
+    error ServiceDoesNotExist();
+    error ServicePaused();
+    error Unauthorized();
+    error BelowSweepThreshold();
+    error NoEarningsToSweep();
+    error IncorrectFee();
+
     ITimeOracle public immutable timeOracle;
 
     struct Service {
@@ -30,7 +37,6 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
     mapping(uint256 => address[]) public serviceSubscribers;
 
     uint256 public nextServiceId;
-
     uint256 public constant MIN_SWEEP_THRESHOLD = 0.016 ether;
 
     event ServiceCreated(uint256 indexed serviceId, address indexed owner, uint256 fee, uint256 period);
@@ -41,7 +47,7 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
     event FeesSwept(uint256 amount);
 
     modifier whenServiceNotPaused(uint256 _serviceId) {
-        require(!services[_serviceId].paused, "Service paused");
+        if (services[_serviceId].paused) revert ServicePaused();
         _;
     }
 
@@ -79,12 +85,10 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
 
     function _subscribe(address _subscriber, uint256 _serviceId, uint256 _value) internal {
         Service storage service = services[_serviceId];
-        require(service.owner != address(0), "Service does not exist");
+        assert(service.owner != address(0));
+        if (_value < service.fee || _value % service.fee != 0) revert IncorrectFee();
         
-        // Allow multiples of the base fee
-        require(_value >= service.fee && _value % service.fee == 0, "Incorrect fee");
-        
-        uint256 periods = _value / service.fee;  // How many periods they paid for
+        uint256 periods = _value / service.fee;
 
         address[] storage subscriberList = serviceSubscribers[_serviceId];
         if (!subscriptions[_serviceId][_subscriber].active) {
@@ -110,6 +114,10 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         emit SubscriptionPaid(_subscriber, _serviceId, newExpiry);
     }
 
+    receive() external payable {
+        revert("Use pay() or gift() to subscribe");
+    }
+
     function isActive(uint256 _serviceId, address _subscriber) external view returns (bool) {
         Subscription memory sub = subscriptions[_serviceId][_subscriber];
         return sub.active && sub.expiry > timeOracle.getCurrentTime();
@@ -126,7 +134,7 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         uint256[] memory remainingDays = new uint256[](subscriberList.length);
         
         for (uint256 i = 0; i < subscriberList.length; i++) {
-            address subscriber = subscriberList[i];  // NO CAST NEEDED
+            address subscriber = subscriberList[i];
             Subscription memory sub = subscriptions[_serviceId][subscriber];
             
             subscribers[i] = subscriber;
@@ -136,9 +144,10 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         
         return (subscribers, activeStatus, remainingDays);
     }
+
     function flagRenewalNeeded(uint256 _serviceId, address _subscriber, bool _needsRenewal, bool _lowBalance) external {
-        require(hasRole(KEEPER_ROLE, msg.sender), "Only keeper");
-        require(services[_serviceId].owner != address(0), "Service does not exist");
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert Unauthorized();
+        if (services[_serviceId].owner == address(0)) revert ServiceDoesNotExist();
 
         Subscription storage sub = subscriptions[_serviceId][_subscriber];
         require(sub.active, "Not active subscriber");
@@ -150,8 +159,8 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
     }
 
     function sweepFees() external {
-        require(hasRole(KEEPER_ROLE, msg.sender), "Only keeper");
-        require(address(this).balance >= MIN_SWEEP_THRESHOLD, "Below minimum sweep threshold");
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert Unauthorized();
+        if (address(this).balance < MIN_SWEEP_THRESHOLD) revert BelowSweepThreshold();
 
         uint256 totalSwept = 0;
         uint256 servicesLength = nextServiceId;
@@ -165,10 +174,9 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
             }
         }
         
-        require(totalSwept > 0, "No earnings to sweep");
-        emit FeesSwept(totalSwept);  // Single event for total amount
+        if (totalSwept == 0) revert NoEarningsToSweep();
+        emit FeesSwept(totalSwept);
     }
-
 
     function getCollectedEarnings(uint256 _serviceId) external view returns (uint256) {
         return services[_serviceId].totalEarnings;
@@ -191,7 +199,6 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         emit EarningsWithdrawn(msg.sender, _serviceId, amount);
     }
 
-
     function changeFee(uint256 _serviceId, uint256 _newFee) external {
         require(services[_serviceId].owner != address(0), "Service does not exist");
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
@@ -200,18 +207,17 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         services[_serviceId].fee = _newFee;
     }
 
-
     function pause(uint256 _serviceId) external {
         require(services[_serviceId].owner != address(0), "Service does not exist");
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
-        require(!services[_serviceId].paused, "Already paused");  // Prevent double-pause
+        require(!services[_serviceId].paused, "Already paused");
         services[_serviceId].paused = true;
     }
 
     function resume(uint256 _serviceId) external {
         require(services[_serviceId].owner != address(0), "Service does not exist");
         require(services[_serviceId].owner == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Unauthorized");
-        require(services[_serviceId].paused, "Not paused");  // Check per-service pause
+        require(services[_serviceId].paused, "Not paused");
         services[_serviceId].paused = false;
     }
 }

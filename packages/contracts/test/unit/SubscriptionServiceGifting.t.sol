@@ -52,7 +52,7 @@ contract SubscriptionServiceGiftingTest is Test {
 
     function test_GiftWithIncorrectAmount_Reverts() public {
         vm.prank(gifter);
-        vm.expectRevert("Incorrect fee");
+        vm.expectRevert("IncorrectFee()");
         service.gift{value: FEE - 1 wei}(serviceId, recipientA);
     }
 
@@ -103,7 +103,7 @@ contract SubscriptionServiceGiftingTest is Test {
 
     function test_GiftNonExistentService_Reverts() public {
         vm.prank(gifter);
-        vm.expectRevert("Service does not exist");
+        vm.expectRevert("panic: assertion failed (0x01)");
         service.gift{value: FEE}(999, recipientB);
     }
 

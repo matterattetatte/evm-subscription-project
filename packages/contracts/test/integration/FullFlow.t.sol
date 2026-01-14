@@ -127,7 +127,7 @@ contract FullFlowTest is Test {
         service.gift{value: LOW_FEE}(admin2Service2, subB3);
 
         vm.prank(subB3);
-        vm.expectRevert("Incorrect fee");
+        vm.expectRevert("IncorrectFee()");
         service.pay{value: 0.005 ether}(admin1Service2);
 
         assertTrue(service.isActive(admin1Service1, subA1));
@@ -221,7 +221,7 @@ contract FullFlowTest is Test {
             assertEq(address(service).balance, 0);
         } else {
             vm.prank(keeper);
-            vm.expectRevert("Below minimum sweep threshold");
+            vm.expectRevert("BelowSweepThreshold()");
             service.sweepFees();
         }
     }
