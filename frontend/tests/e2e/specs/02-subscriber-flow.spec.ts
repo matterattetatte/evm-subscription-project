@@ -5,6 +5,11 @@ import { getUserWallet } from 'tests/mocks/anvil';
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+// TODO: 
+// 1. Make sure to deploy smart contract and based on it set json config in frontend somehow
+// 2. Set up mock subscription services in frontend tests environment
+// 3. set up views and js logic according to the smart contract deployed and the tests here!
+
 test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users }) => {
     const [user] = users;
