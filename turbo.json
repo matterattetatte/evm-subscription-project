@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "packageManager": "pnpm@9.0.0",
+  "pnpmWorkspaceFile": "pnpm-workspace.yaml",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["out/**", "dist/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "forge": {
+      "cache": false
+    }
+  }
+}

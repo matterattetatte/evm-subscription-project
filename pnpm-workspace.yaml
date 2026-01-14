@@ -1,0 +1,6 @@
+packages:
+  - 'contracts'     # Your Foundry project
+  - 'apps/*'        # Frontend apps  
+  - 'packages/*'    # Shared packages
+  - '!**/test/**'
+  - '!**/examples/**'
