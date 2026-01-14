@@ -17,10 +17,20 @@ import {
   type WalletGetCallsStatusReturnType,
   type WalletRpcSchema,
 } from 'viem'
+import { sepolia } from 'viem/chains'
 import { rpc } from 'viem/utils'
 import { ChainNotConfiguredError, createConnector } from 'wagmi'
 
 const localForkRpc = import.meta.env.VITE_LOCAL_FORK_RPC || 'http://127.0.0.1:8545'
+
+const ANVIL_ACCOUNTS: readonly Address[] = [
+  '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+  '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+  '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+  '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+  '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc',
+  '0x976EA74026E726554dB657fA547fA0D9d4E5d6D',
+] as const
 
 class ConnectorNotConnectedError extends BaseError {
   override name = 'ConnectorNotConnectedError'
@@ -44,10 +54,16 @@ export type MockParameters = {
     | undefined
 }
 
-const ANVIL_ACCOUNT_1 = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+function getAssignedAccount(): Address {
+  const idx = (window as any).__ANVIL_ACCOUNT_INDEX
+  if (typeof idx === 'number' && idx >= 0 && idx < ANVIL_ACCOUNTS.length) {
+    return ANVIL_ACCOUNTS[idx]
+  }
+  return ANVIL_ACCOUNTS[0]
+}
 
 export default (() => {
-  const parameters = { accounts: [ANVIL_ACCOUNT_1] } as MockParameters
+  const parameters = { accounts: ANVIL_ACCOUNTS } as MockParameters
   const transactionCache = new Map<Hex, Hex[]>()
   const features = parameters.features ?? ({ defaultConnected: false } satisfies MockParameters['features'])
 
@@ -66,7 +82,7 @@ export default (() => {
 
   return createConnector<Provider, Properties>((config) => ({
     id: 'mock',
-    name: 'Mock Connector',
+    name: 'Mock Anvil Single Account per Context',
     type: 'mock',
     async setup() {
       connectedChainId = config.chains[0].id
@@ -148,20 +164,19 @@ export default (() => {
     },
     async getProvider({ chainId } = {}) {
       const chain = config.chains.find((x) => x.id === chainId) ?? config.chains[0]
-      // const url = chain.rpcUrls.default.http[0]!
       const url = localForkRpc
 
       const request: EIP1193RequestFn = async ({ method, params }) => {
-        // eth methods
         if (method === 'eth_chainId') return numberToHex(connectedChainId)
-        if (method === 'eth_requestAccounts') return parameters.accounts
+        if (method === 'eth_requestAccounts') return [getAssignedAccount()]
+        if (method === 'eth_accounts') return [getAssignedAccount()]
+
         if (method === 'eth_signTypedData_v4')
           if (features.signTypedDataError) {
             if (typeof features.signTypedDataError === 'boolean') throw new UserRejectedRequestError(new Error('Failed to sign typed data.'))
             throw features.signTypedDataError
           }
 
-        // wallet methods
         if (method === 'wallet_switchEthereumChain') {
           if (features.switchChainError) {
             if (typeof features.switchChainError === 'boolean') throw new UserRejectedRequestError(new Error('Failed to switch chain.'))
@@ -183,7 +198,7 @@ export default (() => {
 
         if (method === 'wallet_getCapabilities')
           return {
-            '0x2105': {
+            [sepolia.id]: {
               paymasterService: {
                 supported: (params as [Hex])[0] === '0x95132632579b073D12a6673e18Ab05777a6B86f8',
               },
@@ -287,13 +302,11 @@ export default (() => {
 
         if (method === 'wallet_showCallsStatus') return
 
-        // other methods
         if (method === 'personal_sign') {
           if (features.signMessageError) {
             if (typeof features.signMessageError === 'boolean') throw new UserRejectedRequestError(new Error('Failed to sign message.'))
             throw features.signMessageError
           }
-          // Change `personal_sign` to `eth_sign` and swap params
           method = 'eth_sign'
           type Params = [data: Hex, address: Address]
           params = [(params as Params)[1], (params as Params)[0]]

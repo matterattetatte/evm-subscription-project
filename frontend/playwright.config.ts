@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 90_000,
   fullyParallel: true,
   reporter: [['html', { open: 'never' }], ['list']],
-  workers: 4,
+  workers: 1,
 
   use: {
     launchOptions: {

@@ -1,44 +1,57 @@
+import { getUserWallet } from 'tests/mocks/anvil';
 import { test, expect } from '../fixtures/headless‑wallet.fixture';
+import { initScript } from '../utils/page';
 
-test.describe('Wallet Connection', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000');
-  });
+const sleep = (ms = 2000) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  test('should display connect button initially', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /connect/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /connect/i })).toHaveCount(1);
-  });
+test.describe(() => {
+  test.beforeAll(async ({ users }) => {
+      await Promise.all(
+        users.map(async ({ page }, index) => {
+          await page.goto('http://localhost:5173');
+          await page.waitForLoadState('networkidle');
+          const { account } = getUserWallet(index);
+          await initScript(page, index, account.address);
+        })
+      );
+      await sleep()
+    });
+  test('should show all 6 users as connected', async ({ users }) => {
+    expect(users).toHaveLength(6);
 
-  test('should show wallet address after connection', async ({ page }) => {
-    await page.getByRole('button', { name: /Connect MetaMask/i }).click();
-    
-    await page.waitForSelector('.bg-green-100', { timeout: 5000 });
-    await expect(page.locator('.bg-green-100')).toBeVisible();
-    await expect(page.locator('.bg-green-100')).toContainText('0x');
-  });
+    const results = await Promise.all(
+      users.map(async ({ page, index }) => {
+        console.log(`Evaluating user ${index}...`);
 
-  test('should show disconnect button after connection', async ({ page }) => {
-    await page.getByRole('button', { name: /Connect/i }).click();
-    
-    await page.waitForSelector('[class*="bg-red"]');
-    await expect(page.getByRole('button', { name: /Disconnect/i })).toBeVisible();
-  });
+        return page.evaluate(async () => {
+          if (!window.ethereum) {
+            console.error('No ethereum provider');
+            return null;
+          }
 
-  test('should disconnect wallet successfully', async ({ page }) => {
-    await page.getByRole('button', { name: /Connect/i }).click();
-    
-    await page.waitForSelector('.bg-green-100');
-    await page.getByRole('button', { name: /Disconnect/i }).click();
-    
-    await expect(page.getByRole('button', { name: /Connect/i })).toBeVisible();
-    await expect(page.locator('.bg-green-100')).not.toBeVisible();
-  });
+          try {
+            const accounts = await window.ethereum.request({
+              method: 'eth_requestAccounts',   // ← changed to requestAccounts
+            });
+            console.log('Accounts returned:', accounts);
+            return accounts;
+          } catch (err) {
+            console.error('Error fetching accounts:', err);
+            return null;
+          }
+        });
+      })
+    );
 
-  test('should handle connection error gracefully', async ({ page }) => {
-    await page.route('**/ethereum.isConnected', route => route.fulfill({ status: 403 }));
-    await page.getByRole('button', { name: /Connect/i }).click();
-    
-    await expect(page.locator('[class*="bg-red"]')).toBeVisible({ timeout: 3000 });
+    console.log('All results:', results);
+
+    expect(
+      results.every(acc => Array.isArray(acc) && acc.length > 0),
+      'Every user should have connected accounts'
+    ).toBe(true);
+
+    const addresses = results.map(acc => acc?.[0]?.toLowerCase() ?? null);
+    const uniqueAddresses = new Set(addresses.filter(Boolean));
+    expect(uniqueAddresses.size).toBe(6);
   });
-});
+})

@@ -9,6 +9,7 @@ import { http } from 'viem'
 import { useConnect, useConnections, useConnectors, WagmiProvider } from 'wagmi'
 
 import e2eMockConnector from '@/connectors/e2eMockConnector'
+import { sepolia } from 'viem/chains'
 
 const isE2E = true
 
@@ -69,7 +70,7 @@ const wagmiAdapter = new WagmiAdapter({
   connectors: isE2E ? [e2eMockConnector] : [],
   transports: isE2E
     ? {
-        [base.id]: http(localForkRpc), // Route Base traffic to the local fork in E2E
+        [sepolia.id]: http(localForkRpc), // Route Base traffic to the local fork in E2E
       }
     : undefined,
 })
@@ -105,7 +106,7 @@ const useE2EAutoConnect = () => {
     const attempt = async () => {
       if (cancelled || connections.length > 0) return
       try {
-        connect({ connector: mock, chainId: base.id })
+        connect({ connector: mock, chainId: sepolia.id })
         return
       } catch (err) {
         console.warn('[APPKIT E2E] connect attempt failed', err)
