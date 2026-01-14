@@ -1,5 +1,9 @@
 {
   "devDependencies": {
     "turbo": "latest"
+  },
+  "scripts": {
+    "deploy:local": "forge script packages/contracts/script/Deploy.s.sol:DeploySubscriptionService --rpc-url localhost:8545 --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv",
+    "deploy:sepolia": "forge script packages/contracts/script/Deploy.s.sol:DeploySubscriptionService --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
   }
 }
