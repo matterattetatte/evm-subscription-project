@@ -13,7 +13,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users }) => {
     const [user] = users;
-    await user.page.goto('http://localhost:5173');
+    await user.page.goto('http://localhost:5173/subscriptions');
     await user.page.waitForLoadState('networkidle');
 
     const { account } = getUserWallet(0);

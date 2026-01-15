@@ -32,6 +32,7 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         bool lowBalanceFlagged;
     }
 
+    mapping(address => uint256[]) public userSubscriptions;
     mapping(uint256 => Service) public services;
     mapping(uint256 => mapping(address => Subscription)) public subscriptions;
     mapping(uint256 => address[]) public serviceSubscribers;
@@ -87,12 +88,13 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         Service storage service = services[_serviceId];
         assert(service.owner != address(0));
         if (_value < service.fee || _value % service.fee != 0) revert IncorrectFee();
-        
+
         uint256 periods = _value / service.fee;
 
         address[] storage subscriberList = serviceSubscribers[_serviceId];
         if (!subscriptions[_serviceId][_subscriber].active) {
             subscriberList.push(_subscriber);
+            userSubscriptions[_subscriber].push(_serviceId);
         }
 
         uint256 currentTime = timeOracle.getCurrentTime();
