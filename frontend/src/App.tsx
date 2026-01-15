@@ -1,50 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Link, Outlet } from 'react-router-dom';
 import './App.css';
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+const Home = React.lazy(() => import('./views/Home'));
+const AdminDashboard = React.lazy(() => import('./views/AdminFlow/AdminDashboard'));
+const SingleSubscription = React.lazy(() => import('./views/SubsriberFlow/SingleSubscription'));
+const Subscriptions = React.lazy(() => import('./views/SubsriberFlow/Subscriptions'));
 
-function App() {
-  const [account, setAccount] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const connectWallet = async () => {
-    try {
-      if (!window.ethereum) {
-        setError('MetaMask not installed');
-        return;
-      }
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      setAccount(accounts[0]);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Connection failed');
-    }
-  };
-
-  const disconnectWallet = () => {
-    setAccount(null);
-    setError(null);
-  };
-
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        {!account ? (
-          <button onClick={connectWallet}>Connect MetaMask</button>
-        ) : (
-          <>
-            <div className="bg-green-100">{account}</div>
-            <button className="bg-red-500" onClick={disconnectWallet}>Disconnect</button>
-          </>
-        )}
-        {error && <div className="bg-red-500">{error}</div>}
-      </header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<div>404</div>} />
+      </Routes>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;
