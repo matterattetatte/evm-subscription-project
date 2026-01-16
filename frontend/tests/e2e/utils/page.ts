@@ -1,6 +1,6 @@
 import { Page } from 'playwright/test'
 import { Abi, Address, decodeErrorResult, decodeFunctionResult } from 'viem'
-import { sepolia } from 'viem/chains';
+import { anvil } from 'viem/chains';
 
 export const initScript = async (page: Page, index: number, address: Address) => {
   await page.evaluate(({ selectedAddress, chainId, rpc, anvilIndex }) => {
@@ -36,7 +36,7 @@ export const initScript = async (page: Page, index: number, address: Address) =>
     (window as any).__ANVIL_ACCOUNT_INDEX = anvilIndex;
   }, {
     selectedAddress: address,
-    chainId: sepolia.id,
+    chainId: anvil.id,
     rpc: process.env.ANVIL_RPC || 'http://127.0.0.1:8545',
     anvilIndex: index
   });

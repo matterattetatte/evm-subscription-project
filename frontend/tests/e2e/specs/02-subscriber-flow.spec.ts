@@ -8,7 +8,6 @@ import { join } from 'path';
 test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users, contracts }) => {
     const [{ page }] = users;
-    const { subscription: CONTRACT_ADDRESS } = contracts;
 
     const artifact = JSON.parse(
       readFileSync(
@@ -18,7 +17,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     );
 
     const hash = await mainDeployer.writeContract({
-      address: CONTRACT_ADDRESS,
+      address: contracts.subscription,
       abi: artifact.abi,
       functionName: 'createService',
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
