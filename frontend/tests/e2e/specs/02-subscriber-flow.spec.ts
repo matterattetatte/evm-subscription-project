@@ -5,31 +5,35 @@ import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const CONTRACT_ADDRESS = process.env.SUBSCRIPTION_SERVICE_ADDRESS as `0x${string}`;
-
 test.describe('Subscriber Flow – Happy Paths', () => {
-  test.beforeEach(async ({ users }) => {
-    const [user] = users;
+  test.beforeEach(async ({ users, contracts }) => {
+    const [{ page }] = users;
+    const { subscription: CONTRACT_ADDRESS } = contracts;
 
-    // Create a subscription service
     const artifact = JSON.parse(
-      readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
+      readFileSync(
+        join(process.cwd(), 'src/abis/SubscriptionService.sol/SubscriptionService.json'),
+        'utf-8'
+      )
     );
 
     const hash = await mainDeployer.writeContract({
       address: CONTRACT_ADDRESS,
       abi: artifact.abi,
       functionName: 'createService',
-      args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)], // 0.01 ETH, 30 days
+      args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
+
     await publicClient.waitForTransactionReceipt({ hash });
 
-    await user.page.goto('http://localhost:5173/subscriptions');
-    await user.page.waitForLoadState('networkidle');
+    await page.goto('http://localhost:5173/subscriptions');
+    await page.waitForLoadState('networkidle');
 
     const { account } = getUserWallet(0);
-    await initScript(user.page, 0, account.address);
-    await user.page.waitForFunction(() => !!window.ethereum, { timeout: 10000 });
+
+    await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
+      timeout: 15000,
+    });
   });
 
   test('User can see available subscription services', async ({ users }) => {

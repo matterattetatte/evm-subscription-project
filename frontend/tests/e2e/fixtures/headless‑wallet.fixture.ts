@@ -1,7 +1,6 @@
 import { test as base, expect } from '@playwright/test';
 import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
-import { sepolia } from 'viem/chains';
-import { execSync, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -9,7 +8,6 @@ const LOCAL_RPC = 'http://127.0.0.1:8545';
 const ANVIL_SCRIPT = '../../../scripts/anvil.sh';
 
 let anvilReady: Promise<void> | null = null;
-let contractsDeployed = false;
 
 async function waitForRpcUp(timeout: number): Promise<boolean> {
   const start = Date.now();
@@ -31,100 +29,90 @@ type UserPage = {
   index: number;
 };
 
-
 async function ensureAnvil(testWorkerIndex: number) {
-  if (anvilReady) return anvilReady
+  if (anvilReady) return anvilReady;
 
   anvilReady = (async () => {
-    if (await waitForRpcUp(2_000)) {
-      console.log('[ANVIL] Detected running node at', LOCAL_RPC)
-      return
-    }
+    if (await waitForRpcUp(2000)) return;
 
     if (testWorkerIndex === 0) {
-      console.log('[ANVIL] No node detected — starting anvil via script:', ANVIL_SCRIPT)
-      spawn('bash', [ANVIL_SCRIPT], { stdio: 'inherit', detached: true })
-      // Give it time to boot
-      const ok = await waitForRpcUp(20_000)
-      if (!ok) {
-        throw new Error(`[ANVIL] Failed to start anvil at ${LOCAL_RPC}. Ensure anvil is installed and fork URL reachable.`)
-      }
-      console.log('[ANVIL] Node is up.')
+      spawn('bash', [ANVIL_SCRIPT], { stdio: 'inherit', detached: true });
+      const ok = await waitForRpcUp(20000);
+      if (!ok) throw new Error(`Failed to start anvil at ${LOCAL_RPC}`);
     } else {
-      const ok = await waitForRpcUp(20_000)
-      if (!ok) {
-        throw new Error('[ANVIL] Node not reachable on worker; ensure worker 0 could start it.')
-      }
+      const ok = await waitForRpcUp(20000);
+      if (!ok) throw new Error('Node not reachable on worker');
     }
-  })()
+  })();
 
-  return anvilReady
+  return anvilReady;
 }
 
-const PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const KEEPER_ADDRESS = mainDeployer.account.address;
-
-async function deployContracts(): Promise<void> {
+async function deployContracts() {
   if (existsSync('.env.local') && readFileSync('.env.local', 'utf-8').includes('SUBSCRIPTION_SERVICE_ADDRESS=')) {
-    return;
+    const content = readFileSync('.env.local', 'utf-8');
+    const timeOracle = content.match(/TIME_ORACLE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
+    const subscription = content.match(/SUBSCRIPTION_SERVICE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
+    if (timeOracle && subscription) return { timeOracle, subscription };
   }
 
-  console.log('Deploying contracts to Anvil...');
   const timeArtifact = JSON.parse(
     readFileSync(join(process.cwd(), 'src/abis/MockTimeOracle.sol/MockTimeOracle.json'), 'utf-8')
   );
 
-  console.log('Time Oracle artifact bytecode size:', timeArtifact.bytecode.object.length / 2, 'bytes');
   const subArtifact = JSON.parse(
     readFileSync(join(process.cwd(), 'src/abis/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
   );
 
-  console.log('Subscription artifact bytecode size:', subArtifact.bytecode.object.length / 2, 'bytes');
-  const timeDeploy = await mainDeployer.deployContract({
+  const timeHash = await mainDeployer.deployContract({
     abi: timeArtifact.abi,
-    bytecode: timeArtifact.bytecode.object,
+    bytecode: `0x${timeArtifact.bytecode.object}`,
     args: [BigInt(Math.floor(Date.now() / 1000))],
   });
 
-  console.log('Time Oracle deployment tx hash:', timeDeploy);
-  const timeReceipt = await publicClient.waitForTransactionReceipt({
-    hash: timeDeploy,
-    timeout: 30000,
-  });
+  const timeReceipt = await publicClient.waitForTransactionReceipt({ hash: timeHash, timeout: 30000 });
+  const timeOracle = timeReceipt.contractAddress!;
 
-  console.log('Time Oracle deployed at:', timeReceipt.contractAddress);
-  const timeOracleAddr = timeReceipt.contractAddress!;
-
-  const subDeploy = await mainDeployer.deployContract({
+  const subHash = await mainDeployer.deployContract({
     abi: subArtifact.abi,
-    bytecode: subArtifact.bytecode.object,
-    args: [mainDeployer.account.address, timeOracleAddr],
+    bytecode: `0x${subArtifact.bytecode.object}`,
+    args: [mainDeployer.account.address, timeOracle],
   });
 
-  console.log('Subscription Service deployment tx hash:', subDeploy);
-  const subReceipt = await publicClient.waitForTransactionReceipt({
-    hash: subDeploy,
-    timeout: 30000,
-  });
-
-  const subAddr = subReceipt.contractAddress!;
+  const subReceipt = await publicClient.waitForTransactionReceipt({ hash: subHash, timeout: 30000 });
+  const subscription = subReceipt.contractAddress!;
 
   writeFileSync('.env.local', [
-    `TIME_ORACLE_ADDRESS=${timeOracleAddr}`,
-    `SUBSCRIPTION_SERVICE_ADDRESS=${subAddr}`,
+    `TIME_ORACLE_ADDRESS=${timeOracle}`,
+    `SUBSCRIPTION_SERVICE_ADDRESS=${subscription}`,
   ].join('\n') + '\n', { flag: 'a' });
+
+  return { timeOracle, subscription };
 }
 
 export const test = base.extend<{
+  anvil: void;
+  contracts: { timeOracle: `0x${string}`; subscription: `0x${string}` };
   users: UserPage[];
 }>({
-  users: async ({ browser }, use, testInfo) => {
-    await ensureAnvil(testInfo.workerIndex);
-    
-    if (testInfo.workerIndex === 0) {
-      await deployContracts();
+  anvil: [
+    async ({}, use, testInfo) => {
+      await ensureAnvil(testInfo.workerIndex);
+      await use();
+    },
+    { scope: 'worker', auto: true },
+  ],
+
+  contracts: async ({ anvil }, use, testInfo) => {
+    if (testInfo.workerIndex !== 0) {
+      await new Promise(r => setTimeout(r, 5000));
     }
 
+    const addresses = await deployContracts();
+    await use(addresses);
+  },
+
+  users: async ({ browser, contracts }, use, testInfo) => {
     const users: UserPage[] = [];
 
     await Promise.all(
@@ -133,9 +121,9 @@ export const test = base.extend<{
         const context = await browser.newContext();
         const page = await context.newPage();
 
-        page.on('console', (msg) => {
-          console.log(`[BROWSER][worker:${testInfo.workerIndex}] ${msg.type()}: ${msg.text()}`)
-        })
+        page.on('console', msg => {
+          console.log(`[BROWSER][w:${testInfo.workerIndex}] ${msg.type()}: ${msg.text()}`);
+        });
 
         users.push({ address: account.address, page, index });
       })
@@ -143,7 +131,7 @@ export const test = base.extend<{
 
     await use(users);
 
-    users.forEach(({ page }) => page.context().close().catch(() => {}));
+    users.forEach(u => u.page.context().close().catch(() => {}));
   },
 });
 
