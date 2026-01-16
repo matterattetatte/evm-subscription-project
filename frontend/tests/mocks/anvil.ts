@@ -45,7 +45,7 @@ export const testClient = createTestClient({
 
 export const publicClient = createPublicClient(clientConfig)
 
-const mainDeployer = createWalletClient({
+export const mainDeployer = createWalletClient({
   ...clientConfig,
   account: mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 0 }),
 })
