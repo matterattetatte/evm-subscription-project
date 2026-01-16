@@ -49,10 +49,10 @@ async function ensureAnvil(testWorkerIndex: number) {
 }
 
 async function deployContracts() {
-  if (existsSync('.env.local') && readFileSync('.env.local', 'utf-8').includes('SUBSCRIPTION_SERVICE_ADDRESS=')) {
+  if (existsSync('.env.local') && readFileSync('.env.local', 'utf-8').includes('VITE_SUBSCRIPTION_SERVICE_ADDRESS=')) {
     const content = readFileSync('.env.local', 'utf-8');
-    const timeOracle = content.match(/TIME_ORACLE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
-    const subscription = content.match(/SUBSCRIPTION_SERVICE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
+    const timeOracle = content.match(/VITE_TIME_ORACLE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
+    const subscription = content.match(/VITE_SUBSCRIPTION_SERVICE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
     if (timeOracle && subscription) return { timeOracle, subscription };
   }
 
@@ -83,8 +83,8 @@ async function deployContracts() {
   const subscription = subReceipt.contractAddress!;
 
   writeFileSync('.env.local', [
-    `TIME_ORACLE_ADDRESS=${timeOracle}`,
-    `SUBSCRIPTION_SERVICE_ADDRESS=${subscription}`,
+    `VITE_TIME_ORACLE_ADDRESS=${timeOracle}`,
+    `VITE_SUBSCRIPTION_SERVICE_ADDRESS=${subscription}`,
   ].join('\n') + '\n', { flag: 'a' });
 
   return { timeOracle, subscription };

@@ -41,12 +41,12 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     const [user] = users;
 
     await expect(
-      user.page.getByText(/subscribe|join|plan|service/i)
-    ).toBeVisible();
+      user.page.locator('[data-service-id], [data-testid^="service-"]')
+    ).toHaveCount(1, { timeout: 10000 });
 
     await expect(
-      user.page.locator('[data-service-id], [data-testid^="service-"]')
-    ).toHaveCount(1, { timeout: 8000 });
+      user.page.getByText('Service #1')
+    ).toBeVisible();
   });
 
   test('User can subscribe to a service', async ({ users }) => {

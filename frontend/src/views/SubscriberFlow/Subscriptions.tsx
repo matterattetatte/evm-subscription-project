@@ -2,7 +2,7 @@ import React from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { abi as SubscriptionServiceAbi } from '../../abis/SubscriptionService.sol/SubscriptionService.json';
 
-const CONTRACT_ADDRESS = (process.env.REACT_APP_SUBSCRIPTION_SERVICE_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const CONTRACT_ADDRESS = (process.env.VITE_SUBSCRIPTION_SERVICE_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
 const Subscriptions: React.FC = () => {
   const { address } = useAccount();
