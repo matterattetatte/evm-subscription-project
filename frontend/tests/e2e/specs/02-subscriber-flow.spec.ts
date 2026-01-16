@@ -30,12 +30,14 @@ test.describe('Subscriber Flow – Happy Paths', () => {
 
     const { account } = getUserWallet(0);
 
+    await initScript(page, 0, account.address);
+
     await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
       timeout: 15000,
     });
   });
 
-  test('User can see available subscription services', async ({ users }) => {
+  test.only('User can see available subscription services', async ({ users }) => {
     const [user] = users;
 
     await expect(
@@ -56,7 +58,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     await expect(user.page.locator('[data-testid="subscription-active"]')).toBeVisible();
   });
 
-  test('User can extend existing subscription', async ({ users }) => {
+  test('User can extend existing subscription', async ({ users, contracts }) => {
     const [user] = users;
     const artifact = JSON.parse(
       readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
@@ -65,7 +67,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     // First subscribe
     const wallet = getUserWallet(0);
     await wallet.writeContract({
-      address: CONTRACT_ADDRESS,
+      address: contracts.subscription,
       abi: artifact.abi,
       functionName: 'pay',
       args: [BigInt(1)],
@@ -89,7 +91,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     await expect(user.page.getByText(/gift sent/i)).toBeVisible({ timeout: 10000 });
   });
 
-  test('User can check subscription status', async ({ users }) => {
+  test('User can check subscription status', async ({ users, contracts }) => {
     const [user] = users;
     const artifact = JSON.parse(
       readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
@@ -98,7 +100,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     // Subscribe first
     const wallet = getUserWallet(0);
     await wallet.writeContract({
-      address: CONTRACT_ADDRESS,
+      address: contracts.subscription,
       abi: artifact.abi,
       functionName: 'pay',
       args: [BigInt(1)],

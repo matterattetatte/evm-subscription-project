@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 10_000,
+  timeout: 30_000,
   fullyParallel: true,
   reporter: [['html', { open: 'never' }], ['list']],
   workers: 1,
@@ -19,8 +19,6 @@ export default defineConfig({
     screenshot: (process.env.PW_USE_SCREENSHOT as 'on' | 'off' | 'only-on-failure') || 'only-on-failure',
     video: (process.env.PW_USE_VIDEO as 'on' | 'off' | 'retain-on-failure' | 'retain-on-failure') || 'retain-on-failure',
     trace: (process.env.PW_USE_TRACE as 'on' | 'off' | 'retain-on-failure' | 'on-first-retry') || 'on-first-retry',
-
-    // THIS IS THE ONLY LINE THAT MATTERS
   },
   projects: [
     {

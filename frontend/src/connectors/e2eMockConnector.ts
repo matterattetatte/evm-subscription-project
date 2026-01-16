@@ -17,7 +17,7 @@ import {
   type WalletGetCallsStatusReturnType,
   type WalletRpcSchema,
 } from 'viem'
-import { sepolia } from 'viem/chains'
+import { anvil } from 'viem/chains'
 import { rpc } from 'viem/utils'
 import { ChainNotConfiguredError, createConnector } from 'wagmi'
 
@@ -198,7 +198,7 @@ export default (() => {
 
         if (method === 'wallet_getCapabilities')
           return {
-            [sepolia.id]: {
+            [anvil.id]: {
               paymasterService: {
                 supported: (params as [Hex])[0] === '0x95132632579b073D12a6673e18Ab05777a6B86f8',
               },
