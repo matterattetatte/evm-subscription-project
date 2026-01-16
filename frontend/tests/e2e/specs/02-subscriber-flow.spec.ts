@@ -25,6 +25,10 @@ test.describe('Subscriber Flow – Happy Paths', () => {
 
     await publicClient.waitForTransactionReceipt({ hash });
 
+    // try to do the same request as we are doing in frontend/src/views/SubscriberFlow/Subscriptions.tsx
+
+    // it seems like the list is empty for some reason...
+
     await page.goto('http://localhost:5173/subscriptions');
     await page.waitForLoadState('networkidle');
 
