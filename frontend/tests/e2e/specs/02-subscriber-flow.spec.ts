@@ -1,18 +1,29 @@
 import { test, expect } from '../fixtures/headless‑wallet.fixture';
 import { parseEther } from 'viem';
 import { initScript } from '../utils/page';
-import { getUserWallet } from 'tests/mocks/anvil';
+import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-// TODO: 
-// 1. Make sure to deploy smart contract and based on it set json config in frontend somehow
-// 2. Set up mock subscription services in frontend tests environment
-// 3. set up views and js logic according to the smart contract deployed and the tests here!
+const CONTRACT_ADDRESS = process.env.SUBSCRIPTION_SERVICE_ADDRESS as `0x${string}`;
 
 test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users }) => {
     const [user] = users;
+
+    // Create a subscription service
+    const artifact = JSON.parse(
+      readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
+    );
+
+    const hash = await mainDeployer.writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: artifact.abi,
+      functionName: 'createService',
+      args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)], // 0.01 ETH, 30 days
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+
     await user.page.goto('http://localhost:5173/subscriptions');
     await user.page.waitForLoadState('networkidle');
 
@@ -21,8 +32,8 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     await user.page.waitForFunction(() => !!window.ethereum, { timeout: 10000 });
   });
 
-  test.only('User can see available subscription services', async ({ users }) => {
-    const [user] = users
+  test('User can see available subscription services', async ({ users }) => {
+    const [user] = users;
 
     await expect(
       user.page.getByText(/subscribe|join|plan|service/i)
@@ -31,5 +42,79 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     await expect(
       user.page.locator('[data-service-id], [data-testid^="service-"]')
     ).toHaveCount(1, { timeout: 8000 });
+  });
+
+  test('User can subscribe to a service', async ({ users }) => {
+    const [user] = users;
+
+    await user.page.locator('[data-testid="subscribe-btn-1"]').click();
+    await user.page.waitForSelector('[data-testid="subscription-active"]', { timeout: 10000 });
+    
+    await expect(user.page.locator('[data-testid="subscription-active"]')).toBeVisible();
+  });
+
+  test('User can extend existing subscription', async ({ users }) => {
+    const [user] = users;
+    const artifact = JSON.parse(
+      readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
+    );
+
+    // First subscribe
+    const wallet = getUserWallet(0);
+    await wallet.writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: artifact.abi,
+      functionName: 'pay',
+      args: [BigInt(1)],
+      value: parseEther('0.01'),
+    });
+
+    await user.page.reload();
+    await user.page.locator('[data-testid="extend-btn-1"]').click();
+    
+    await expect(user.page.getByText(/extended/i)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('User can gift subscription to another address', async ({ users }) => {
+    const [user] = users;
+    const recipient = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC';
+
+    await user.page.locator('[data-testid="gift-btn-1"]').click();
+    await user.page.locator('[data-testid="recipient-input"]').fill(recipient);
+    await user.page.locator('[data-testid="gift-confirm-btn"]').click();
+    
+    await expect(user.page.getByText(/gift sent/i)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('User can check subscription status', async ({ users }) => {
+    const [user] = users;
+    const artifact = JSON.parse(
+      readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
+    );
+
+    // Subscribe first
+    const wallet = getUserWallet(0);
+    await wallet.writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: artifact.abi,
+      functionName: 'pay',
+      args: [BigInt(1)],
+      value: parseEther('0.01'),
+    });
+
+    await user.page.reload();
+    await user.page.locator('[data-testid="service-1"]').click();
+    
+    await expect(user.page.getByText(/active/i)).toBeVisible();
+    await expect(user.page.locator('[data-testid="expiry-date"]')).toBeVisible();
+  });
+
+  test('User can pay for multiple periods at once', async ({ users }) => {
+    const [user] = users;
+
+    await user.page.locator('[data-testid="periods-input-1"]').fill('3');
+    await user.page.locator('[data-testid="subscribe-btn-1"]').click();
+    
+    await expect(user.page.getByText(/3.*period/i)).toBeVisible({ timeout: 10000 });
   });
 });

@@ -23,7 +23,7 @@ import {
 } from 'viem'
 import { Address, mnemonicToAccount } from 'viem/accounts'
 import { waitForTransactionReceipt } from 'viem/actions'
-import { base } from 'viem/chains'
+import { anvil } from 'viem/chains'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -33,7 +33,7 @@ const ANVIL_MNEMONIC = process.env.ANVIL_MNEMONIC || 'test test test test test t
 
 const addressIndex = 0
 const clientConfig = {
-  chain: base,
+  chain: anvil,
   transport: http(RPC_URL),
   account: mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex }),
 }

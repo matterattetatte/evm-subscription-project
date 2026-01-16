@@ -1,5 +1,5 @@
 import type { AppKitNetwork } from '@reown/appkit/networks'
-import { base, baseSepolia } from '@reown/appkit/networks'
+import { anvil, sepolia } from '@reown/appkit/networks'
 import { createAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { ApiController } from '@reown/appkit-controllers'
@@ -9,7 +9,6 @@ import { http } from 'viem'
 import { useConnect, useConnections, useConnectors, WagmiProvider } from 'wagmi'
 
 import e2eMockConnector from '@/connectors/e2eMockConnector'
-import { sepolia } from 'viem/chains'
 
 const isE2E = true
 
@@ -62,7 +61,7 @@ if (isE2E && typeof window !== 'undefined') {
   }
 }
 
-const networks: [AppKitNetwork, ...AppKitNetwork[]] = [base, baseSepolia]
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [anvil, sepolia]
 
 const wagmiAdapter = new WagmiAdapter({
   projectId,

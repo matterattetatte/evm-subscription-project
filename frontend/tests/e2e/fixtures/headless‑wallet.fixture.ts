@@ -1,12 +1,15 @@
 import { test as base, expect } from '@playwright/test';
-import { getUserWallet } from 'tests/mocks/anvil';
+import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
 import { sepolia } from 'viem/chains';
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
 const LOCAL_RPC = 'http://127.0.0.1:8545';
-const ANVIL_SCRIPT = '../../../scripts/anvil-sepolia-fork.sh';
+const ANVIL_SCRIPT = '../../../scripts/anvil.sh';
 
 let anvilReady: Promise<void> | null = null;
+let contractsDeployed = false;
 
 async function waitForRpcUp(timeout: number): Promise<boolean> {
   const start = Date.now();
@@ -58,10 +61,70 @@ async function ensureAnvil(testWorkerIndex: number) {
   return anvilReady
 }
 
+const PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const KEEPER_ADDRESS = mainDeployer.account.address;
+
+async function deployContracts(): Promise<void> {
+  if (existsSync('.env.local') && readFileSync('.env.local', 'utf-8').includes('SUBSCRIPTION_SERVICE_ADDRESS=')) {
+    return;
+  }
+
+  console.log('Deploying contracts to Anvil...');
+  const timeArtifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'src/abis/MockTimeOracle.sol/MockTimeOracle.json'), 'utf-8')
+  );
+
+  console.log('Time Oracle artifact bytecode size:', timeArtifact.bytecode.object.length / 2, 'bytes');
+  const subArtifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'src/abis/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
+  );
+
+  console.log('Subscription artifact bytecode size:', subArtifact.bytecode.object.length / 2, 'bytes');
+  const timeDeploy = await mainDeployer.deployContract({
+    abi: timeArtifact.abi,
+    bytecode: timeArtifact.bytecode.object,
+    args: [BigInt(Math.floor(Date.now() / 1000))],
+  });
+
+  console.log('Time Oracle deployment tx hash:', timeDeploy);
+  const timeReceipt = await publicClient.waitForTransactionReceipt({
+    hash: timeDeploy,
+    timeout: 30000,
+  });
+
+  console.log('Time Oracle deployed at:', timeReceipt.contractAddress);
+  const timeOracleAddr = timeReceipt.contractAddress!;
+
+  const subDeploy = await mainDeployer.deployContract({
+    abi: subArtifact.abi,
+    bytecode: subArtifact.bytecode.object,
+    args: [mainDeployer.account.address, timeOracleAddr],
+  });
+
+  console.log('Subscription Service deployment tx hash:', subDeploy);
+  const subReceipt = await publicClient.waitForTransactionReceipt({
+    hash: subDeploy,
+    timeout: 30000,
+  });
+
+  const subAddr = subReceipt.contractAddress!;
+
+  writeFileSync('.env.local', [
+    `TIME_ORACLE_ADDRESS=${timeOracleAddr}`,
+    `SUBSCRIPTION_SERVICE_ADDRESS=${subAddr}`,
+  ].join('\n') + '\n', { flag: 'a' });
+}
+
 export const test = base.extend<{
   users: UserPage[];
 }>({
   users: async ({ browser }, use, testInfo) => {
+    await ensureAnvil(testInfo.workerIndex);
+    
+    if (testInfo.workerIndex === 0) {
+      await deployContracts();
+    }
+
     const users: UserPage[] = [];
 
     await Promise.all(
