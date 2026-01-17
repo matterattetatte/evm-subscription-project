@@ -4,7 +4,7 @@ import { useAppKitAccount } from '@reown/appkit/react';
 import { abi as SubscriptionServiceAbi } from '../../abis/SubscriptionService.sol/SubscriptionService.json';
 import { Link } from 'react-router-dom';
 
-const CONTRACT_ADDRESS = (import.meta.env.VITE_SUBSCRIPTION_SERVICE_ADDRESS || '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512') as `0x${string}`;
+const CONTRACT_ADDRESS = import.meta.env.VITE_SUBSCRIPTION_SERVICE_ADDRESS as `0x${string}`;
 
 const Subscriptions: React.FC = () => {
   const { isConnected } = useAppKitAccount();

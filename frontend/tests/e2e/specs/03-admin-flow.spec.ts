@@ -21,7 +21,7 @@ test.describe.only('Admin Flow – Owner Management', () => {
     });
   });
 
-  test('Owner can create a new service', async ({ users, contracts }) => {
+  test.only('Owner can create a new service', async ({ users, contracts }) => {
     const [{ page }] = users;
 
     await page.getByTestId('create-fee-input').fill('0.02');

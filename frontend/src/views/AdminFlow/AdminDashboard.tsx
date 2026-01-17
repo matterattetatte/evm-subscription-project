@@ -4,7 +4,7 @@ import { parseEther, formatEther } from 'viem';
 import artifact from '../../abis/SubscriptionService.sol/SubscriptionService.json';
 
 const { abi: SubscriptionServiceAbi } = artifact;
-const CONTRACT_ADDRESS = import.meta.env.VITE_SUBSCRIPTION_CONTRACT_ADDRESS as `0x${string}`;
+const CONTRACT_ADDRESS = import.meta.env.VITE_SUBSCRIPTION_SERVICE_ADDRESS as `0x${string}`;
 
 const AdminDashboard: React.FC = () => {
   const [serviceId, setServiceId] = useState('');
@@ -14,11 +14,14 @@ const AdminDashboard: React.FC = () => {
 
   const { mutate, data: hash, isPending } = useWriteContract();
 
-  const { data: nextServiceId } = useReadContract({
+  const { data: nextServiceId, error: nextServiceIdError } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: SubscriptionServiceAbi,
     functionName: 'nextServiceId',
   });
+
+  console.log('error', CONTRACT_ADDRESS);
+  console.log('foo', nextServiceId, nextServiceIdError);
 
   const { data: serviceData } = useReadContract({
     address: CONTRACT_ADDRESS,
