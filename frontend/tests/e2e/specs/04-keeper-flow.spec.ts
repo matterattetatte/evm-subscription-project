@@ -5,8 +5,14 @@ import { getUserWallet, mainDeployer, publicClient, keeperWallet } from 'tests/m
 
 const { abi: SubscriptionServiceAbi } = artifact;
 
-test.describe('Keeper Flow – Bot Operations', () => {
-  test('Keeper can flag renewal needed for subscribers', async ({ contracts }) => {
+test.describe.only('Keeper Flow – Bot Operations', () => {
+  test.only('Keeper can flag renewal needed for subscribers', async ({ contracts }) => {
+    // Fund keeper wallet
+    await mainDeployer.sendTransaction({
+      to: keeperWallet.account.address,
+      value: parseEther('1'),
+    });
+
     const createHash = await mainDeployer.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
@@ -31,6 +37,7 @@ test.describe('Keeper Flow – Bot Operations', () => {
       abi: SubscriptionServiceAbi,
       functionName: 'flagRenewalNeeded',
       args: [BigInt(1), getUserWallet(0).account.address, true, false],
+      gas: 10000000n,
     });
 
     await publicClient.waitForTransactionReceipt({ hash: flagHash });
@@ -108,6 +115,7 @@ test.describe('Keeper Flow – Bot Operations', () => {
       abi: SubscriptionServiceAbi,
       functionName: 'sweepFees',
       args: [],
+      gas: 200000n,
     });
 
     await publicClient.waitForTransactionReceipt({ hash: sweepHash });

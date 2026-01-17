@@ -6,7 +6,7 @@ import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
 
 const { abi: SubscriptionServiceAbi } = artifact;
 
-test.describe.only('Admin Flow – Owner Management', () => {
+test.describe('Admin Flow – Owner Management', () => {
   test.beforeEach(async ({ users, contracts }) => {
     const [{ page }] = users;
 
