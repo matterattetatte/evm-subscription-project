@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { abi as SubscriptionServiceAbi } from '../../abis/SubscriptionService.sol/SubscriptionService.json';
 import {
-  useAccount,
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -157,6 +156,25 @@ const SingleSubscription: React.FC = () => {
           ? 'Already Subscribed'
           : 'Subscribe Now'}
       </button>
+      
+      {subscriptionData && subscriptionData[1] && (
+        <button
+          data-testid="extend-btn"
+          onClick={handleSubscribe}
+          disabled={isSubscribing || isWritePending || isConfirming}
+          style={{
+            padding: '12px 32px',
+            fontSize: '1.1rem',
+            background: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            marginLeft: '10px',
+          }}
+        >
+          Extend
+        </button>
+      )}
 
       {error && (
         <div style={{ color: 'red', marginTop: '1.5rem' }}>

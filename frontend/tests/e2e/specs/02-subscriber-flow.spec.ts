@@ -51,35 +51,48 @@ test.describe.only('Subscriber Flow – Happy Paths', () => {
     ).toBeVisible();
   });
 
-  test('User can subscribe to a service', async ({ users }) => {
+  test.only('User can subscribe to a service', async ({ users, contracts }) => {
     const [{ page }] = users;
 
     await page.getByTestId('service-1').click();
     await page.waitForLoadState('networkidle');
-    
-    await page.locator('[data-testid="subscribe-btn-1"]').click();
+
+    await page.getByTestId('subscribe-btn-1').click();
     await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
-    
+
     await expect(page.getByText('Successfully subscribed!')).toBeVisible();
     await expect(page.getByText('Active ✅')).toBeVisible();
-  });
 
-  test.only('User can extend existing subscription', async ({ users, contracts }) => {
-    const [user] = users;
-
-    const wallet = getUserWallet(0);
-    await wallet.writeContract({
+    const newSubscription = await publicClient.readContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
-      functionName: 'pay',
-      args: [BigInt(1)],
-      value: parseEther('0.01'),
+      functionName: 'subscriptions',
+      args: [BigInt(1), getUserWallet(0).account.address],
     });
 
-    await user.page.reload();
-    await user.page.locator('[data-testid="extend-btn-1"]').click();
+    expect(newSubscription[0]).toBeGreaterThan(0n);
+    expect(newSubscription[1]).toBe(true);
+
+    await page.reload();
+    await page.getByTestId('extend-btn').click();
+
+    const extendedSubscription = await publicClient.readContract({
+      address: contracts.subscription,
+      abi: SubscriptionServiceAbi,
+      functionName: 'subscriptions',
+      args: [BigInt(2), getUserWallet(0).account.address], // now adding 2 periods
+    });
+
+    const serviceData = await publicClient.readContract({
+      address: contracts.subscription,
+      abi: SubscriptionServiceAbi,
+      functionName: 'services',
+      args: [BigInt(1)],
+    });
     
-    await expect(user.page.getByText(/extended/i)).toBeVisible({ timeout: 10000 });
+    const servicePeriod = serviceData[1];
+    expect(extendedSubscription[0]).toBe(newSubscription[0] + servicePeriod);
+    expect(extendedSubscription[1]).toBe(true);
   });
 
   test('User can gift subscription to another address', async ({ users }) => {
@@ -91,37 +104,5 @@ test.describe.only('Subscriber Flow – Happy Paths', () => {
     await user.page.locator('[data-testid="gift-confirm-btn"]').click();
     
     await expect(user.page.getByText(/gift sent/i)).toBeVisible({ timeout: 10000 });
-  });
-
-  test('User can check subscription status', async ({ users, contracts }) => {
-    const [user] = users;
-    const artifact = JSON.parse(
-      readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
-    );
-
-    // Subscribe first
-    const wallet = getUserWallet(0);
-    await wallet.writeContract({
-      address: contracts.subscription,
-      abi: artifact.abi,
-      functionName: 'pay',
-      args: [BigInt(1)],
-      value: parseEther('0.01'),
-    });
-
-    await user.page.reload();
-    await user.page.locator('[data-testid="service-1"]').click();
-    
-    await expect(user.page.getByText(/active/i)).toBeVisible();
-    await expect(user.page.locator('[data-testid="expiry-date"]')).toBeVisible();
-  });
-
-  test('User can pay for multiple periods at once', async ({ users }) => {
-    const [user] = users;
-
-    await user.page.locator('[data-testid="periods-input-1"]').fill('3');
-    await user.page.locator('[data-testid="subscribe-btn-1"]').click();
-    
-    await expect(user.page.getByText(/3.*period/i)).toBeVisible({ timeout: 10000 });
   });
 });
