@@ -56,7 +56,7 @@ contract SubscriptionService is AccessControl, ReentrancyGuard {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(KEEPER_ROLE, _keeper);
         timeOracle = ITimeOracle(_timeOracle);
-        nextServiceId = 1;
+        nextServiceId = 0;
     }
 
     function createService(uint256 _fee, uint256 _period) external returns (uint256 serviceId) {

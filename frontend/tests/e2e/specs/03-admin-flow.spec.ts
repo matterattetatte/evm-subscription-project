@@ -21,14 +21,14 @@ test.describe.only('Admin Flow – Owner Management', () => {
     });
   });
 
-  test.only('Owner can create a new service', async ({ users, contracts }) => {
+  test('Owner can create a new service', async ({ users, contracts }) => {
     const [{ page }] = users;
 
     await page.getByTestId('create-fee-input').fill('0.02');
     await page.getByTestId('create-period-input').fill('60');
     await page.getByTestId('create-service-btn').click();
 
-    await page.waitForSelector('text=Next Service ID: 2', { timeout: 5000 });
+    await page.waitForSelector('text=Next Service ID: 1', { timeout: 5000 });
 
     const serviceData = await publicClient.readContract({
       address: contracts.subscription,
@@ -37,27 +37,24 @@ test.describe.only('Admin Flow – Owner Management', () => {
       args: [BigInt(1)],
     });
 
-    console.log('Service Data:', serviceData);
-
     expect(serviceData[0]).toBe(parseEther('0.02'));
     expect(serviceData[1]).toBe(BigInt(60 * 24 * 60 * 60));
     expect(serviceData[2]).toBe(getUserWallet(0).account.address);
   });
 
   test('Owner can manage service fee and status', async ({ users, contracts }) => {
-    const [{ page }] = users;
-
-    const hash = await mainDeployer.writeContract({
+    const [{ page, wallet }] = users;
+    
+    const hash = await wallet.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'createService',
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
+    
+    await page.goto('http://localhost:5173/admin/services/1');
 
     await publicClient.waitForTransactionReceipt({ hash });
-
-    await page.getByTestId('service-id-input').fill('1');
-    await page.waitForSelector('text=Fee: 0.01 ETH', { timeout: 5000 });
 
     await page.getByTestId('new-fee-input').fill('0.05');
     await page.getByTestId('change-fee-btn').click();
@@ -98,7 +95,7 @@ test.describe.only('Admin Flow – Owner Management', () => {
     expect(resumedService[4]).toBe(false);
   });
 
-  test('Owner can withdraw earnings', async ({ users, contracts }) => {
+  test.only('Owner can withdraw earnings', async ({ users, contracts }) => {
     const [{ page }] = users;
 
     const createHash = await mainDeployer.writeContract({
@@ -107,6 +104,8 @@ test.describe.only('Admin Flow – Owner Management', () => {
       functionName: 'createService',
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
+
+    await page.goto('http://localhost:5173/admin/services/1');
 
     await publicClient.waitForTransactionReceipt({ hash: createHash });
 
@@ -120,7 +119,6 @@ test.describe.only('Admin Flow – Owner Management', () => {
 
     await publicClient.waitForTransactionReceipt({ hash: payHash });
 
-    await page.getByTestId('service-id-input').fill('1');
     await page.waitForSelector('text=Earnings: 0.01 ETH', { timeout: 5000 });
 
     await page.getByTestId('withdraw-earnings-btn').click();

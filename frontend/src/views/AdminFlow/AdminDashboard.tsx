@@ -10,6 +10,7 @@ const CONTRACT_ADDRESS = import.meta.env.VITE_SUBSCRIPTION_SERVICE_ADDRESS as `0
 const AdminDashboard: React.FC = () => {
   const [createFee, setCreateFee] = useState('');
   const [createPeriod, setCreatePeriod] = useState('');
+  const [newServiceId, setNewServiceId] = useState<number | null>(null);
 
   const { mutate, error, data: hash, isPending } = useWriteContract();
 
@@ -19,6 +20,13 @@ const AdminDashboard: React.FC = () => {
     address: CONTRACT_ADDRESS,
     abi: SubscriptionServiceAbi,
     functionName: 'nextServiceId',
+  });
+
+  const { data: newServiceData } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: SubscriptionServiceAbi,
+    functionName: 'services',
+    args: newServiceId ? [BigInt(newServiceId)] : undefined,
   });
 
   const createService = () => {
@@ -32,11 +40,13 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (isSuccess) {
+      const currentServiceId = nextServiceId ? Number(nextServiceId) : 1;
+      setNewServiceId(currentServiceId);
       refetch();
       setCreateFee('');
       setCreatePeriod('');
     }
-  }, [isSuccess, refetch]);
+  }, [isSuccess, refetch, nextServiceId]);
 
   const serviceIds = nextServiceId ? Array.from({ length: Number(nextServiceId) - 1 }, (_, i) => i + 1) : [];
 

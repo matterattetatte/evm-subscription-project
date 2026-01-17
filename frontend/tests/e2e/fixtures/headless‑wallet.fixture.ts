@@ -3,6 +3,7 @@ import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
 import { execSync, spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { WalletClient } from 'viem';
 
 const LOCAL_RPC = 'http://127.0.0.1:8545';
 const ANVIL_SCRIPT = '../../../scripts/anvil.sh';
@@ -26,7 +27,7 @@ async function waitForRpcUp(timeout: number): Promise<boolean> {
 }
 
 type UserPage = {
-  address: string;
+  wallet: typeof mainDeployer,
   page: import('@playwright/test').Page;
   index: number;
 };
@@ -119,7 +120,7 @@ export const test = base.extend<{
 
     await Promise.all(
       Array.from({ length: 6 }, async (_, index) => {
-        const { account } = getUserWallet(index);
+        const wallet = getUserWallet(index);
         const context = await browser.newContext();
         const page = await context.newPage();
 
@@ -127,7 +128,7 @@ export const test = base.extend<{
           console.log(`[BROWSER][w:${testInfo.workerIndex}] ${msg.type()}: ${msg.text()}`);
         });
 
-        users.push({ address: account.address, page, index });
+        users.push({ wallet, page, index });
       })
     );
 
