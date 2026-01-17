@@ -95,30 +95,35 @@ test.describe.only('Admin Flow – Owner Management', () => {
     expect(resumedService[4]).toBe(false);
   });
 
-  test.only('Owner can withdraw earnings', async ({ users, contracts }) => {
-    const [{ page }] = users;
+  test('Owner can withdraw earnings', async ({ users, contracts }) => {
+    const [{ page, wallet }] = users;
 
-    const createHash = await mainDeployer.writeContract({
+    const createHash = await wallet.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'createService',
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
 
-    await page.goto('http://localhost:5173/admin/services/1');
-
     await publicClient.waitForTransactionReceipt({ hash: createHash });
+
+    const serviceId = await publicClient.readContract({
+      address: contracts.subscription,
+      abi: SubscriptionServiceAbi,
+      functionName: 'nextServiceId',
+    });
 
     const payHash = await mainDeployer.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'pay',
-      args: [BigInt(1)],
+      args: [serviceId],
       value: parseEther('0.01'),
     });
 
     await publicClient.waitForTransactionReceipt({ hash: payHash });
 
+    await page.goto(`http://localhost:5173/admin/services/${serviceId.toString()}`);
     await page.waitForSelector('text=Earnings: 0.01 ETH', { timeout: 5000 });
 
     await page.getByTestId('withdraw-earnings-btn').click();

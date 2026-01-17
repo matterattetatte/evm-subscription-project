@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useReadContract, useWriteContract } from 'wagmi';
+import React, { useEffect, useState } from 'react';
+import { useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import artifact from '../../abis/SubscriptionService.sol/SubscriptionService.json';
 import { useParams } from 'react-router-dom';
@@ -13,7 +13,9 @@ const AdminSubscriptionHandling: React.FC = () => {
   const serviceId = id ? BigInt(id) : BigInt(0);
   const [newFee, setNewFee] = useState('');
 
-  const { mutate, isPending } = useWriteContract();
+  const { mutate, data: hash, isPending } = useWriteContract();
+
+  const { error: receiptError } = useWaitForTransactionReceipt({ hash });
 
   const { data: serviceData } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -28,6 +30,12 @@ const AdminSubscriptionHandling: React.FC = () => {
     functionName: 'getCollectedEarnings',
     args: serviceId ? [BigInt(serviceId)] : undefined,
   });
+
+  useEffect(() => {
+    if (receiptError) {
+      console.error('Error with transaction receipt:', receiptError);
+    }
+  }, [receiptError])
 
   const changeFee = () => {
     mutate({

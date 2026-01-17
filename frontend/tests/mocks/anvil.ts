@@ -1,28 +1,11 @@
-import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import {
   createPublicClient,
   createTestClient,
-  createWalletClient,
-  decodeErrorResult,
-  encodeDeployData,
-  encodePacked,
-  erc20Abi,
-  formatEther,
-  formatUnits,
-  getContract,
-  http,
-  keccak256,
-  pad,
-  parseEther,
-  parseUnits,
-  toHex,
-  WalletClient,
-  zeroAddress,
+  createWalletClient, http
 } from 'viem'
-import { Address, mnemonicToAccount } from 'viem/accounts'
-import { waitForTransactionReceipt } from 'viem/actions'
+import { mnemonicToAccount } from 'viem/accounts'
 import { anvil } from 'viem/chains'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -48,6 +31,11 @@ export const publicClient = createPublicClient(clientConfig)
 export const mainDeployer = createWalletClient({
   ...clientConfig,
   account: mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 0 }),
+})
+
+export const keeperWallet = createWalletClient({
+  ...clientConfig,
+  account: mnemonicToAccount(ANVIL_MNEMONIC, { addressIndex: 10 }),
 })
 
 export const getUserWallet = (index: number) => {
