@@ -2,6 +2,7 @@ import React from 'react';
 import { useReadContract, useChainId } from 'wagmi';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { abi as SubscriptionServiceAbi } from '../../abis/SubscriptionService.sol/SubscriptionService.json';
+import { Link } from 'react-router-dom';
 
 const CONTRACT_ADDRESS = (import.meta.env.VITE_SUBSCRIPTION_SERVICE_ADDRESS || '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512') as `0x${string}`;
 
@@ -30,13 +31,11 @@ const Subscriptions: React.FC = () => {
       ) : (
         <ul>
           {Array.from({ length: Number(data) }, (_, i) => i + 1).map((serviceId) => (
-            <li key={serviceId} data-service-id={serviceId} data-testid={`service-${serviceId}`}>
-              Service #{serviceId}
-              <button data-testid={`subscribe-btn-${serviceId}`}>Subscribe</button>
-              <button data-testid={`extend-btn-${serviceId}`}>Extend</button>
-              <button data-testid={`gift-btn-${serviceId}`}>Gift</button>
-              <input data-testid={`periods-input-${serviceId}`} placeholder="Periods" />
-            </li>
+            <Link key={serviceId} data-testid={`service-${serviceId}`} to={`/subscriptions/${serviceId}`}>
+              <li>
+                Service #{serviceId}
+              </li>
+            </Link>
           ))}
         </ul>
       )}

@@ -1,24 +1,20 @@
 import { test, expect } from '../fixtures/headless‑wallet.fixture';
 import { parseEther } from 'viem';
 import { initScript } from '../utils/page';
+import artifact from '../../../src/abis/SubscriptionService.sol/SubscriptionService.json' with { type: 'json' };
 import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-test.describe('Subscriber Flow – Happy Paths', () => {
+const { abi: SubscriptionServiceAbi } = artifact;
+
+test.describe.only('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users, contracts }) => {
     const [{ page }] = users;
 
-    const artifact = JSON.parse(
-      readFileSync(
-        join(process.cwd(), 'src/abis/SubscriptionService.sol/SubscriptionService.json'),
-        'utf-8'
-      )
-    );
-
     const hash = await mainDeployer.writeContract({
       address: contracts.subscription,
-      abi: artifact.abi,
+      abi: SubscriptionServiceAbi,
       functionName: 'createService',
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
@@ -27,7 +23,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
 
     await publicClient.readContract({
       address: contracts.subscription,
-      abi: artifact.abi,
+      abi: SubscriptionServiceAbi,
       functionName: 'nextServiceId',
     });
 
@@ -43,7 +39,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     });
   });
 
-  test.only('User can see available subscription services', async ({ users }) => {
+  test('User can see available subscription services', async ({ users }) => {
     const [user] = users;
 
     await expect(
@@ -56,25 +52,25 @@ test.describe('Subscriber Flow – Happy Paths', () => {
   });
 
   test('User can subscribe to a service', async ({ users }) => {
-    const [user] = users;
+    const [{ page }] = users;
 
-    await user.page.locator('[data-testid="subscribe-btn-1"]').click();
-    await user.page.waitForSelector('[data-testid="subscription-active"]', { timeout: 10000 });
+    await page.getByTestId('service-1').click();
+    await page.waitForLoadState('networkidle');
     
-    await expect(user.page.locator('[data-testid="subscription-active"]')).toBeVisible();
+    await page.locator('[data-testid="subscribe-btn-1"]').click();
+    await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    
+    await expect(page.getByText('Successfully subscribed!')).toBeVisible();
+    await expect(page.getByText('Active ✅')).toBeVisible();
   });
 
-  test('User can extend existing subscription', async ({ users, contracts }) => {
+  test.only('User can extend existing subscription', async ({ users, contracts }) => {
     const [user] = users;
-    const artifact = JSON.parse(
-      readFileSync(join(process.cwd(), '../packages/contracts/out/SubscriptionService.sol/SubscriptionService.json'), 'utf-8')
-    );
 
-    // First subscribe
     const wallet = getUserWallet(0);
     await wallet.writeContract({
       address: contracts.subscription,
-      abi: artifact.abi,
+      abi: SubscriptionServiceAbi,
       functionName: 'pay',
       args: [BigInt(1)],
       value: parseEther('0.01'),
