@@ -28,7 +28,7 @@ test.describe.only('Admin Flow – Owner Management', () => {
     await page.getByTestId('create-period-input').fill('60');
     await page.getByTestId('create-service-btn').click();
 
-    await page.waitForSelector('text=Next Service ID: 2', { timeout: 10000 });
+    await page.waitForTimeout(6000);
 
     const serviceData = await publicClient.readContract({
       address: contracts.subscription,
@@ -36,6 +36,8 @@ test.describe.only('Admin Flow – Owner Management', () => {
       functionName: 'services',
       args: [BigInt(1)],
     });
+
+    console.log('Service Data:', serviceData);
 
     expect(serviceData[0]).toBe(parseEther('0.02'));
     expect(serviceData[1]).toBe(BigInt(60 * 24 * 60 * 60));

@@ -14,7 +14,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/subscriptions/:id" element={<AdminSubscriptionHandling />} />
+        <Route path="/admin/services/:id" element={<AdminSubscriptionHandling />} />
         <Route path="/subscriptions" element={<Subscriptions />} />
         <Route path="/subscriptions/:id" element={<SingleSubscription />} />
         <Route path="*" element={<div>404</div>} />
