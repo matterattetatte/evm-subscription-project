@@ -3,12 +3,10 @@ import { parseEther } from 'viem';
 import { initScript } from '../utils/page';
 import artifact from '../../../src/abis/SubscriptionService.sol/SubscriptionService.json' with { type: 'json' };
 import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 const { abi: SubscriptionServiceAbi } = artifact;
 
-test.describe.only('Subscriber Flow – Happy Paths', () => {
+test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users, contracts }) => {
     const [{ page }] = users;
 
@@ -51,7 +49,7 @@ test.describe.only('Subscriber Flow – Happy Paths', () => {
     ).toBeVisible();
   });
 
-  test.only('User can subscribe to a service', async ({ users, contracts }) => {
+  test('User can subscribe to a service, extend it and gift to another address', async ({ users, contracts }) => {
     const [{ page }] = users;
 
     await page.getByTestId('service-1').click();
@@ -80,7 +78,7 @@ test.describe.only('Subscriber Flow – Happy Paths', () => {
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'subscriptions',
-      args: [BigInt(2), getUserWallet(0).account.address], // now adding 2 periods
+      args: [BigInt(1), getUserWallet(0).account.address],
     });
 
     const serviceData = await publicClient.readContract({
@@ -93,16 +91,20 @@ test.describe.only('Subscriber Flow – Happy Paths', () => {
     const servicePeriod = serviceData[1];
     expect(extendedSubscription[0]).toBe(newSubscription[0] + servicePeriod);
     expect(extendedSubscription[1]).toBe(true);
-  });
 
-  test('User can gift subscription to another address', async ({ users }) => {
-    const [user] = users;
     const recipient = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC';
+    await page.getByTestId("gift-btn").click();
+    await page.getByTestId("recipient-input").fill(recipient);
+    await page.getByTestId("gift-confirm-btn").click();
 
-    await user.page.locator('[data-testid="gift-btn-1"]').click();
-    await user.page.locator('[data-testid="recipient-input"]').fill(recipient);
-    await user.page.locator('[data-testid="gift-confirm-btn"]').click();
-    
-    await expect(user.page.getByText(/gift sent/i)).toBeVisible({ timeout: 10000 });
+    const giftedSubscription = await publicClient.readContract({
+      address: contracts.subscription,
+      abi: SubscriptionServiceAbi,
+      functionName: 'subscriptions',
+      args: [BigInt(1), recipient],
+    });
+
+    expect(giftedSubscription[0]).toBeGreaterThan(0n);
+    expect(giftedSubscription[1]).toBe(true);
   });
 });

@@ -22,6 +22,8 @@ const SingleSubscription: React.FC = () => {
 
   const { isConnected, address } = useAppKitAccount();
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [showGiftModal, setShowGiftModal] = useState(false);
+  const [giftRecipient, setGiftRecipient] = useState('');
 
   const { data: serviceData, error: serviceError } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -76,6 +78,25 @@ const SingleSubscription: React.FC = () => {
 
   const { isLoading: isConfirming, isSuccess, error: receiptError } =
     useWaitForTransactionReceipt({ hash });
+
+  const handleGift = async () => {
+    if (!isConnected || !giftRecipient) return;
+    
+    setIsSubscribing(true);
+    try {
+      mutate({
+        address: CONTRACT_ADDRESS,
+        abi: SubscriptionServiceAbi,
+        functionName: 'gift',
+        args: [serviceId, giftRecipient as `0x${string}`],
+        value: parseEther('0.01'),
+      });
+      setShowGiftModal(false);
+    } catch (err) {
+      console.error('Gift error:', err);
+      setIsSubscribing(false);
+    }
+  };
 
   const handleSubscribe = () => {
     if (!isConnected || !address || serviceId === 0n) return;
@@ -174,6 +195,47 @@ const SingleSubscription: React.FC = () => {
         >
           Extend
         </button>
+      )}
+
+      <button
+        data-testid="gift-btn"
+        onClick={() => setShowGiftModal(true)}
+        style={{
+          padding: '12px 32px',
+          fontSize: '1.1rem',
+          background: '#ffc107',
+          color: 'black',
+          border: 'none',
+          borderRadius: '6px',
+          marginLeft: '10px',
+        }}
+      >
+        Gift
+      </button>
+      
+      {showGiftModal && (
+        <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
+          <h3>Gift Subscription</h3>
+          <input
+            data-testid="recipient-input"
+            type="text"
+            placeholder="Recipient address (0x...)"
+            value={giftRecipient}
+            onChange={(e) => setGiftRecipient(e.target.value)}
+            style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+          />
+          <button
+            data-testid="gift-confirm-btn"
+            onClick={handleGift}
+            disabled={!giftRecipient || isSubscribing}
+            style={{ marginRight: '10px', padding: '8px 16px' }}
+          >
+            Send Gift
+          </button>
+          <button onClick={() => setShowGiftModal(false)} style={{ padding: '8px 16px' }}>
+            Cancel
+          </button>
+        </div>
       )}
 
       {error && (
