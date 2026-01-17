@@ -1,5 +1,5 @@
 import type { AppKitNetwork } from '@reown/appkit/networks'
-import { anvil, sepolia } from '@reown/appkit/networks'
+import { anvil } from '@reown/appkit/networks'
 import { createAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { ApiController } from '@reown/appkit-controllers'
@@ -61,7 +61,7 @@ if (isE2E && typeof window !== 'undefined') {
   }
 }
 
-const networks: [AppKitNetwork, ...AppKitNetwork[]] = [anvil, sepolia]
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [anvil]
 
 const wagmiAdapter = new WagmiAdapter({
   projectId,
@@ -69,7 +69,7 @@ const wagmiAdapter = new WagmiAdapter({
   connectors: isE2E ? [e2eMockConnector] : [],
   transports: isE2E
     ? {
-        [sepolia.id]: http(localForkRpc), // Route Base traffic to the local fork in E2E
+        [anvil.id]: http(localForkRpc), // Route Anvil traffic to the local fork in E2E
       }
     : undefined,
 })
@@ -105,7 +105,7 @@ const useE2EAutoConnect = () => {
     const attempt = async () => {
       if (cancelled || connections.length > 0) return
       try {
-        connect({ connector: mock, chainId: sepolia.id })
+        connect({ connector: mock, chainId: anvil.id })
         return
       } catch (err) {
         console.warn('[APPKIT E2E] connect attempt failed', err)

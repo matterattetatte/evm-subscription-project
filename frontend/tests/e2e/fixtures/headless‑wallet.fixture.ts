@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test';
 import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -8,6 +8,8 @@ const LOCAL_RPC = 'http://127.0.0.1:8545';
 const ANVIL_SCRIPT = '../../../scripts/anvil.sh';
 
 let anvilReady: Promise<void> | null = null;
+
+execSync('rm -f .env.local', { stdio: 'inherit' });
 
 async function waitForRpcUp(timeout: number): Promise<boolean> {
   const start = Date.now();
@@ -66,7 +68,7 @@ async function deployContracts() {
 
   const timeHash = await mainDeployer.deployContract({
     abi: timeArtifact.abi,
-    bytecode: `0x${timeArtifact.bytecode.object}`,
+    bytecode: timeArtifact.bytecode.object,
     args: [BigInt(Math.floor(Date.now() / 1000))],
   });
 
@@ -75,7 +77,7 @@ async function deployContracts() {
 
   const subHash = await mainDeployer.deployContract({
     abi: subArtifact.abi,
-    bytecode: `0x${subArtifact.bytecode.object}`,
+    bytecode: subArtifact.bytecode.object,
     args: [mainDeployer.account.address, timeOracle],
   });
 
