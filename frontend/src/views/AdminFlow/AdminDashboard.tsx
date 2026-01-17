@@ -15,7 +15,7 @@ const AdminDashboard: React.FC = () => {
 
   const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
-  const { data: nextServiceId } = useReadContract({
+  const { data: nextServiceId, refetch } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: SubscriptionServiceAbi,
     functionName: 'nextServiceId',
@@ -29,6 +29,14 @@ const AdminDashboard: React.FC = () => {
       args: [parseEther(createFee), BigInt(Number(createPeriod) * 24 * 60 * 60)],
     });
   };
+
+  useEffect(() => {
+    if (isSuccess) {
+      refetch();
+      setCreateFee('');
+      setCreatePeriod('');
+    }
+  }, [isSuccess, refetch]);
 
   const serviceIds = nextServiceId ? Array.from({ length: Number(nextServiceId) - 1 }, (_, i) => i + 1) : [];
 

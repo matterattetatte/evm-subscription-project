@@ -28,7 +28,7 @@ test.describe.only('Admin Flow – Owner Management', () => {
     await page.getByTestId('create-period-input').fill('60');
     await page.getByTestId('create-service-btn').click();
 
-    await page.waitForTimeout(6000);
+    await page.waitForSelector('text=Next Service ID: 2', { timeout: 5000 });
 
     const serviceData = await publicClient.readContract({
       address: contracts.subscription,
