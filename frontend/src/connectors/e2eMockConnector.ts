@@ -23,6 +23,8 @@ import { ChainNotConfiguredError, createConnector } from 'wagmi'
 
 export const isE2E = import.meta.env.MODE === 'e2e' 
 
+// ;(window as any).__ANVIL_ACCOUNT_INDEX = 0;
+
 const localForkRpc = import.meta.env.VITE_LOCAL_FORK_RPC || 'http://127.0.0.1:8545'
 
 const ANVIL_ACCOUNTS: readonly Address[] = [

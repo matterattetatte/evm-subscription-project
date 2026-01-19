@@ -126,7 +126,7 @@ export const test = base.extend<{
         const page = await context.newPage();
 
         page.on('console', msg => {
-          console.log(`[BROWSER][w:${testInfo.workerIndex}] ${msg.type()}: ${msg.text()}`);
+          console.log(`[BROWSER][account:${wallet.account.address.slice(0, 6)}...${wallet.account.address.slice(-4)}][w:${testInfo.workerIndex}] ${msg.type()}: ${msg.text()}`);
         });
 
         users.push({ wallet, page, index });

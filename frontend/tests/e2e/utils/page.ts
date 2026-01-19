@@ -40,6 +40,10 @@ export const initScript = async (page: Page, index: number, address: Address) =>
     rpc: process.env.ANVIL_RPC || 'http://127.0.0.1:8545',
     anvilIndex: index
   });
+
+  await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
+    timeout: 15000,
+  });
 }
 
 export const debugContractRequest = async (page: Page, abi: Abi, actionsFn: () => Promise<void>) => {
