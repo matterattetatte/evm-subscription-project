@@ -72,6 +72,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     expect(newSubscription[1]).toBe(true);
 
     await page.reload();
+    await page.waitForSelector('[data-testid="extend-btn"]', { timeout: 10000 })
     await page.getByTestId('extend-btn').click();
 
     const extendedSubscription = await publicClient.readContract({

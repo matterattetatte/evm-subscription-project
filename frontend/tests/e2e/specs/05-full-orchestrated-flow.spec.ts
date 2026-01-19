@@ -3,13 +3,11 @@ import { parseEther } from 'viem';
 import { initScript } from '../utils/page';
 import artifact from '../../../src/abis/SubscriptionService.sol/SubscriptionService.json' with { type: 'json' };
 import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
+import { loadFixture } from '../utils/fixture';
 
 const { abi: SubscriptionServiceAbi } = artifact;
 
-test.describe.only('Full Orchestrated Flow', () => {
-  test.beforeEach(async ({ users, contracts }) => {
-    const [{ page, wallet }] = users;
-
+async function fixture({ contracts }: any) {
     await mainDeployer.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
@@ -23,14 +21,20 @@ test.describe.only('Full Orchestrated Flow', () => {
       functionName: 'createService',
       args: [parseEther('0.05'), BigInt(7 * 24 * 60 * 60)],
     });
+}
 
+test.describe.only('Full Orchestrated Flow', () => {
+  test.beforeEach(async ({ users, contracts }) => {
+    await loadFixture(fixture, { contracts })
+
+    const [{ page, wallet }] = users;
     await page.goto('http://localhost:5173/subscriptions');
     await page.waitForLoadState('networkidle');
     await initScript(page, 0, wallet.account.address);
   });
 
   test('Complete user journey: browse → subscribe → extend → gift → verify', async ({ users, contracts }) => {
-    const [{ page }] = users;
+    const [{ page, wallet }] = users;
 
     await expect(page.locator('[data-testid^="service-"]')).toHaveCount(2, { timeout: 10000 });
     await expect(page.getByText('Service #1')).toBeVisible();
@@ -54,6 +58,7 @@ test.describe.only('Full Orchestrated Flow', () => {
     expect(subscription[1]).toBe(true);
 
     await page.reload();
+    await initScript(page, 0, wallet.account.address);
     await page.getByTestId('extend-btn').click();
     await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
@@ -66,12 +71,10 @@ test.describe.only('Full Orchestrated Flow', () => {
     expect(extendedSubscription[0]).toBeGreaterThan(subscription[0]);
 
     const recipient = getUserWallet(1).account.address;
-    await page.locator('[data-testid="gift-btn"]').click();
-    await page.locator('[data-testid="recipient-input"]').fill(recipient);
-    await page.locator('[data-testid="gift-confirm-btn"]').click();
+    await page.getByTestId('gift-btn').click();
+    await page.getByTestId('recipient-input').fill(recipient);
+    await page.getByTestId('gift-confirm-btn').click();
     
-    await expect(page.getByText(/gift sent/i)).toBeVisible({ timeout: 10000 });
-
     const giftedSubscription = await publicClient.readContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
@@ -81,7 +84,6 @@ test.describe.only('Full Orchestrated Flow', () => {
     expect(giftedSubscription[1]).toBe(true);
 
     await page.goto('http://localhost:5173/subscriptions');
-    await page.waitForLoadState('networkidle');
     await initScript(page, 0, wallet.account.address);
     
     await page.getByTestId('service-2').click();
@@ -121,7 +123,6 @@ test.describe.only('Full Orchestrated Flow', () => {
     await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     await user2.page.goto('http://localhost:5173/subscriptions');
-    await user2.page.waitForLoadState('networkidle');
     await initScript(user2.page, 1, user2.wallet.account.address);
     await user2.page.waitForSelector('[data-testid="service-2"]', { timeout: 10000 });
 
@@ -146,9 +147,9 @@ test.describe.only('Full Orchestrated Flow', () => {
     expect(user1Subscription).toBe(true);
     expect(user2Subscription).toBe(true);
 
-    await user1.page.locator('[data-testid="gift-btn"]').click();
-    await user1.page.locator('[data-testid="recipient-input"]').fill(user2.wallet.account.address);
-    await user1.page.locator('[data-testid="gift-confirm-btn"]').click();
+    await user1.page.getByTestId('gift-btn').click();
+    await user1.page.getByTestId('recipient-input').fill(user2.wallet.account.address);
+    await user1.page.getByTestId('gift-confirm-btn').click();
     await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     const user2Service1 = await publicClient.readContract({

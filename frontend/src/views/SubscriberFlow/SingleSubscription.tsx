@@ -83,7 +83,6 @@ const SingleSubscription: React.FC = () => {
     useWaitForTransactionReceipt({ hash });
 
   const handleGift = async () => {
-    console.log('start handling gift!!...')
     if (!isConnected || !giftRecipient) return;
     
     setIsSubscribing(true);
@@ -135,6 +134,9 @@ const SingleSubscription: React.FC = () => {
 
   const formatEndTime = (ts?: bigint) =>
     ts && ts > 0n ? new Date(Number(ts) * 1000).toLocaleString() : 'Not subscribed';
+
+
+  // console.log('fooo read contract address:', subscriptionData, 'enabled?', !!address && serviceId > 0n && isConnected, 'foo', isSubscribing || isWritePending || isConfirming)
 
   return (
     <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
