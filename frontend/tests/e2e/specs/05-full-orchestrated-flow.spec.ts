@@ -40,9 +40,9 @@ test.describe.only('Full Orchestrated Flow', () => {
     await page.waitForLoadState('networkidle');
     
     await page.getByTestId('subscribe-btn').click();
-    await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
     
-    await expect(page.getByText('Successfully subscribed!')).toBeVisible();
+    await expect(page.getByText('Successful transaction')).toBeVisible();
     await expect(page.getByText('Active ✅')).toBeVisible();
 
     const subscription = await publicClient.readContract({
@@ -55,7 +55,7 @@ test.describe.only('Full Orchestrated Flow', () => {
 
     await page.reload();
     await page.getByTestId('extend-btn').click();
-    await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     const extendedSubscription = await publicClient.readContract({
       address: contracts.subscription,
@@ -92,7 +92,7 @@ test.describe.only('Full Orchestrated Flow', () => {
     await expect(page.getByText('7 days')).toBeVisible();
 
     await page.getByTestId('subscribe-btn').click();
-    await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     const service1Status = await publicClient.readContract({
       address: contracts.subscription,
@@ -112,13 +112,13 @@ test.describe.only('Full Orchestrated Flow', () => {
     expect(service2Status).toBe(true);
   });
 
-  test.only('Multi-user interaction flow', async ({ users, contracts }) => {
+  test('Multi-user interaction flow', async ({ users, contracts }) => {
     const [user1, user2] = users;
 
     await user1.page.getByTestId('service-1').click();
     await user1.page.waitForLoadState('networkidle');
     await user1.page.getByTestId('subscribe-btn').click();
-    await user1.page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     await user2.page.goto('http://localhost:5173/subscriptions');
     await user2.page.waitForLoadState('networkidle');
@@ -127,7 +127,7 @@ test.describe.only('Full Orchestrated Flow', () => {
 
     await user2.page.getByTestId('service-2').click();
     await user2.page.getByTestId('subscribe-btn').click();
-    await user2.page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    await user2.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     const user1Subscription = await publicClient.readContract({
       address: contracts.subscription,
@@ -149,7 +149,7 @@ test.describe.only('Full Orchestrated Flow', () => {
     await user1.page.locator('[data-testid="gift-btn"]').click();
     await user1.page.locator('[data-testid="recipient-input"]').fill(user2.wallet.account.address);
     await user1.page.locator('[data-testid="gift-confirm-btn"]').click();
-    await user1.page.waitForSelector('text=Gift sent successfully!', { timeout: 10000 });
+    await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
     const user2Service1 = await publicClient.readContract({
       address: contracts.subscription,

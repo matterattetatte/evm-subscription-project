@@ -33,8 +33,6 @@ const SingleSubscription: React.FC = () => {
     query: { enabled: serviceId > 0n && isConnected },
   });
 
-  console.log('temp service data', serviceId.toString(), serviceData, address)
-
   const price = serviceData ? serviceData[0] : undefined;
   const duration = serviceData ? serviceData[1] : undefined;
 
@@ -85,6 +83,7 @@ const SingleSubscription: React.FC = () => {
     useWaitForTransactionReceipt({ hash });
 
   const handleGift = async () => {
+    console.log('start handling gift!!...')
     if (!isConnected || !giftRecipient) return;
     
     setIsSubscribing(true);
@@ -160,7 +159,7 @@ const SingleSubscription: React.FC = () => {
 
       {isSuccess && (
         <div style={{ color: 'green', margin: '1rem 0', fontWeight: 'bold' }}>
-          Successfully subscribed!
+          Successful transaction
         </div>
       )}
 
