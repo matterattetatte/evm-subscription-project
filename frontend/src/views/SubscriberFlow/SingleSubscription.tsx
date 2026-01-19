@@ -107,8 +107,6 @@ const SingleSubscription: React.FC = () => {
 
     setIsSubscribing(true);
 
-    console.log('preview request', JSON.stringify(preview?.request))
-
     if (preview?.request) mutate(preview.request);
   };
 
