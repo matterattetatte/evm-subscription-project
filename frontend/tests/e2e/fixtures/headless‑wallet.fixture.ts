@@ -39,7 +39,7 @@ async function ensureAnvil(testWorkerIndex: number) {
     if (await waitForRpcUp(2000)) return;
 
     if (testWorkerIndex === 0) {
-      spawn('bash', [ANVIL_SCRIPT], { stdio: 'inherit', detached: true });
+      spawn(ANVIL_SCRIPT, { stdio: 'inherit', detached: true });
       const ok = await waitForRpcUp(20000);
       if (!ok) throw new Error(`Failed to start anvil at ${LOCAL_RPC}`);
     } else {
