@@ -21,6 +21,8 @@ import { anvil } from 'viem/chains'
 import { rpc } from 'viem/utils'
 import { ChainNotConfiguredError, createConnector } from 'wagmi'
 
+export const isE2E = import.meta.env.MODE === 'e2e' 
+
 const localForkRpc = import.meta.env.VITE_LOCAL_FORK_RPC || 'http://127.0.0.1:8545'
 
 const ANVIL_ACCOUNTS: readonly Address[] = [
@@ -54,12 +56,20 @@ export type MockParameters = {
     | undefined
 }
 
-function getAssignedAccount(): Address {
+const sleep = (ms = 1000) => new Promise((r) => setTimeout(r, ms))
+
+async function getAssignedAccount(): Promise<Address> {
   const idx = (window as any).__ANVIL_ACCOUNT_INDEX
   if (typeof idx === 'number' && idx >= 0 && idx < ANVIL_ACCOUNTS.length) {
     return ANVIL_ACCOUNTS[idx]
   }
-  return ANVIL_ACCOUNTS[0]
+
+  if (isE2E) {
+    await sleep()
+    return getAssignedAccount()
+  } else { 
+    return ANVIL_ACCOUNTS[0]
+  }
 }
 
 export default (() => {
@@ -168,8 +178,8 @@ export default (() => {
 
       const request: EIP1193RequestFn = async ({ method, params }) => {
         if (method === 'eth_chainId') return numberToHex(connectedChainId)
-        if (method === 'eth_requestAccounts') return [getAssignedAccount()]
-        if (method === 'eth_accounts') return [getAssignedAccount()]
+        if (method === 'eth_requestAccounts') return [await getAssignedAccount()]
+        if (method === 'eth_accounts') return [await getAssignedAccount()]
 
         if (method === 'eth_signTypedData_v4')
           if (features.signTypedDataError) {

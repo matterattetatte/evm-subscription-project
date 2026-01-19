@@ -14,3 +14,6 @@ root.render(
     </AppKitProvider>
   </StrictMode>
 )
+;(BigInt.prototype as any).toJSON = function () {
+  return this.toString()
+}

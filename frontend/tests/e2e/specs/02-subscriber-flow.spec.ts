@@ -55,7 +55,7 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     await page.getByTestId('service-1').click();
     await page.waitForLoadState('networkidle');
 
-    await page.getByTestId('subscribe-btn-1').click();
+    await page.getByTestId('subscribe-btn').click();
     await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
 
     await expect(page.getByText('Successfully subscribed!')).toBeVisible();

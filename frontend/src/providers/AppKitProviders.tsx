@@ -8,9 +8,7 @@ import { useEffect } from 'react'
 import { http } from 'viem'
 import { useConnect, useConnections, useConnectors, WagmiProvider } from 'wagmi'
 
-import e2eMockConnector from '@/connectors/e2eMockConnector'
-
-const isE2E = true
+import e2eMockConnector, { isE2E } from '@/connectors/e2eMockConnector'
 
 const queryClient = new QueryClient({
   defaultOptions: {

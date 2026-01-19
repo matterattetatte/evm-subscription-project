@@ -6,7 +6,8 @@ import { join } from 'path';
 import { WalletClient } from 'viem';
 
 const LOCAL_RPC = 'http://127.0.0.1:8545';
-const ANVIL_SCRIPT = '../../../scripts/anvil.sh';
+
+const ANVIL_SCRIPT = '../scripts/anvil.sh'
 
 let anvilReady: Promise<void> | null = null;
 

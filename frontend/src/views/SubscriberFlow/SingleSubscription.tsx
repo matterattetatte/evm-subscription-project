@@ -33,6 +33,8 @@ const SingleSubscription: React.FC = () => {
     query: { enabled: serviceId > 0n && isConnected },
   });
 
+  console.log('temp service data', serviceId.toString(), serviceData, address)
+
   const price = serviceData ? serviceData[0] : undefined;
   const duration = serviceData ? serviceData[1] : undefined;
 
@@ -63,6 +65,9 @@ const SingleSubscription: React.FC = () => {
     args: [serviceId],
     value: price,
     account: address as Address,
+    query: {
+      enabled: !!address && !!price && isConnected,
+    }
   })
 
   if (previewError) {
@@ -102,6 +107,8 @@ const SingleSubscription: React.FC = () => {
     if (!isConnected || !address || serviceId === 0n) return;
 
     setIsSubscribing(true);
+
+    console.log('preview request', JSON.stringify(preview?.request))
 
     if (preview?.request) mutate(preview.request);
   };
@@ -158,9 +165,9 @@ const SingleSubscription: React.FC = () => {
       )}
 
       <button
-        data-testid={`subscribe-btn-${id}`}
+        data-testid="subscribe-btn"
         onClick={handleSubscribe}
-        disabled={isSubscribing || isWritePending || isConfirming || (subscriptionData && subscriptionData[1])}
+        disabled={!price || isSubscribing || isWritePending || isConfirming || (subscriptionData && subscriptionData[1])}
         style={{
           padding: '12px 32px',
           fontSize: '1.1rem',
