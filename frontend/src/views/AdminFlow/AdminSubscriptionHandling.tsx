@@ -15,7 +15,7 @@ const AdminSubscriptionHandling: React.FC = () => {
 
   const { mutate, data: hash, isPending } = useWriteContract();
 
-  const { error: receiptError } = useWaitForTransactionReceipt({ hash });
+  const { data: receiptData, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
   const { data: serviceData } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -30,12 +30,6 @@ const AdminSubscriptionHandling: React.FC = () => {
     functionName: 'getCollectedEarnings',
     args: serviceId ? [BigInt(serviceId)] : undefined,
   });
-
-  useEffect(() => {
-    if (receiptError) {
-      console.error('Error with transaction receipt:', receiptError);
-    }
-  }, [receiptError])
 
   const changeFee = () => {
     mutate({

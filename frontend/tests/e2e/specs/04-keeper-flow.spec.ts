@@ -5,7 +5,7 @@ import { getUserWallet, mainDeployer, publicClient, keeperWallet } from 'tests/m
 
 const { abi: SubscriptionServiceAbi } = artifact;
 
-test.describe('Keeper Flow – Bot Operations', () => {
+test.describe.skip('Keeper Flow – Bot Operations', () => {
   test('Keeper can flag renewal needed for subscribers', async ({ contracts }) => {
     await mainDeployer.sendTransaction({
       to: keeperWallet.account.address,

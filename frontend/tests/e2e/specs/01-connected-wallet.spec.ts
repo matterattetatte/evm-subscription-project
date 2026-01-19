@@ -9,7 +9,6 @@ test.describe(() => {
       await Promise.all(
         users.map(async ({ page }, index) => {
           await page.goto('http://localhost:5173');
-          await page.waitForLoadState('networkidle');
         })
       );
       await sleep()

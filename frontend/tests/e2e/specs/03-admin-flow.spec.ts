@@ -8,13 +8,10 @@ const { abi: SubscriptionServiceAbi } = artifact;
 
 test.describe('Admin Flow – Owner Management', () => {
   test.beforeEach(async ({ users, contracts }) => {
-    const [{ page }] = users;
+    const [{ page, wallet }] = users;
 
     await page.goto('http://localhost:5173/admin');
-    await page.waitForLoadState('networkidle');
-
-    const { account } = getUserWallet(0);
-    await initScript(page, 0, account.address);
+    await initScript(page, 0, wallet.account.address);
 
     await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
       timeout: 15000,
@@ -28,7 +25,7 @@ test.describe('Admin Flow – Owner Management', () => {
     await page.getByTestId('create-period-input').fill('60');
     await page.getByTestId('create-service-btn').click();
 
-    await page.waitForSelector('text=Next Service ID: 1', { timeout: 5000 });
+    await page.waitForLoadState('networkidle')
 
     const serviceData = await publicClient.readContract({
       address: contracts.subscription,
@@ -44,7 +41,7 @@ test.describe('Admin Flow – Owner Management', () => {
 
   test('Owner can manage service fee and status', async ({ users, contracts }) => {
     const [{ page, wallet }] = users;
-    
+
     const hash = await wallet.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
@@ -53,13 +50,13 @@ test.describe('Admin Flow – Owner Management', () => {
     });
     
     await page.goto('http://localhost:5173/admin/services/1');
+    await initScript(page, 0, wallet.account.address);
 
     await publicClient.waitForTransactionReceipt({ hash });
 
     await page.getByTestId('new-fee-input').fill('0.05');
     await page.getByTestId('change-fee-btn').click();
-
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle')
 
     const updatedService = await publicClient.readContract({
       address: contracts.subscription,
@@ -71,7 +68,7 @@ test.describe('Admin Flow – Owner Management', () => {
     expect(updatedService[0]).toBe(parseEther('0.05'));
 
     await page.getByTestId('pause-service-btn').click();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle')
 
     const pausedService = await publicClient.readContract({
       address: contracts.subscription,
@@ -83,7 +80,7 @@ test.describe('Admin Flow – Owner Management', () => {
     expect(pausedService[4]).toBe(true);
 
     await page.getByTestId('resume-service-btn').click();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle')
 
     const resumedService = await publicClient.readContract({
       address: contracts.subscription,

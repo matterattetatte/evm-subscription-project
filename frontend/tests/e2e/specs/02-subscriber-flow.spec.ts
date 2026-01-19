@@ -8,7 +8,7 @@ const { abi: SubscriptionServiceAbi } = artifact;
 
 test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users, contracts }) => {
-    const [{ page }] = users;
+    const [{ page, wallet }] = users;
 
     const hash = await mainDeployer.writeContract({
       address: contracts.subscription,
@@ -26,11 +26,8 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     });
 
     await page.goto('http://localhost:5173/subscriptions');
-    await page.waitForLoadState('networkidle');
 
-    const { account } = getUserWallet(0);
-
-    await initScript(page, 0, account.address);
+    await initScript(page, 0, wallet.account.address);
 
     await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
       timeout: 15000,
@@ -50,15 +47,14 @@ test.describe('Subscriber Flow – Happy Paths', () => {
   });
 
   test('User can subscribe to a service, extend it and gift to another address', async ({ users, contracts }) => {
-    const [{ page }] = users;
+    const [{ page, wallet }] = users
 
     await page.getByTestId('service-1').click();
-    await page.waitForLoadState('networkidle');
 
     await page.getByTestId('subscribe-btn').click();
-    await page.waitForSelector('text=Successfully subscribed!', { timeout: 10000 });
+    await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
-    await expect(page.getByText('Successfully subscribed!')).toBeVisible();
+    await expect(page.getByText('Successful transaction')).toBeVisible();
     await expect(page.getByText('Active ✅')).toBeVisible();
 
     const newSubscription = await publicClient.readContract({
@@ -72,8 +68,10 @@ test.describe('Subscriber Flow – Happy Paths', () => {
     expect(newSubscription[1]).toBe(true);
 
     await page.reload();
+    await initScript(page, 0, wallet.account.address);
     await page.waitForSelector('[data-testid="extend-btn"]', { timeout: 10000 })
     await page.getByTestId('extend-btn').click();
+    await page.waitForLoadState('networkidle')
 
     const extendedSubscription = await publicClient.readContract({
       address: contracts.subscription,

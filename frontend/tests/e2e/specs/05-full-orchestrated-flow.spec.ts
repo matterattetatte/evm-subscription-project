@@ -23,13 +23,12 @@ async function fixture({ contracts }: any) {
     });
 }
 
-test.describe.only('Full Orchestrated Flow', () => {
+test.describe('Full Orchestrated Flow', () => {
   test.beforeEach(async ({ users, contracts }) => {
     await loadFixture(fixture, { contracts })
 
     const [{ page, wallet }] = users;
     await page.goto('http://localhost:5173/subscriptions');
-    await page.waitForLoadState('networkidle');
     await initScript(page, 0, wallet.account.address);
   });
 
@@ -41,7 +40,7 @@ test.describe.only('Full Orchestrated Flow', () => {
     await expect(page.getByText('Service #2')).toBeVisible();
 
     await page.getByTestId('service-1').click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle')
     
     await page.getByTestId('subscribe-btn').click();
     await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
@@ -87,7 +86,7 @@ test.describe.only('Full Orchestrated Flow', () => {
     await initScript(page, 0, wallet.account.address);
     
     await page.getByTestId('service-2').click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle')
     
     await expect(page.getByText('Service #2')).toBeVisible();
     await expect(page.getByText('0.05 ETH')).toBeVisible();
@@ -118,7 +117,8 @@ test.describe.only('Full Orchestrated Flow', () => {
     const [user1, user2] = users;
 
     await user1.page.getByTestId('service-1').click();
-    await user1.page.waitForLoadState('networkidle');
+    await user1.page.waitForLoadState('networkidle')
+
     await user1.page.getByTestId('subscribe-btn').click();
     await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
 
