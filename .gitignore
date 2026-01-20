@@ -4,3 +4,4 @@ packages/contracts/out
 node_modules
 frontend/test-results
 frontend/playwright-report
+packages/contracts/broadcast
