@@ -1,5 +1,5 @@
 import { test as base, expect } from '@playwright/test';
-import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
+import { getUserWallet, mainDeployer, publicClient, testClient } from 'tests/mocks/anvil';
 import { execSync, spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';

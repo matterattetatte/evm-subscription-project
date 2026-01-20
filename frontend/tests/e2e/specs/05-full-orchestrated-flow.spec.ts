@@ -2,12 +2,12 @@ import { test, expect } from '../fixtures/headless‑wallet.fixture';
 import { parseEther } from 'viem';
 import { initScript } from '../utils/page';
 import artifact from '../../../src/abis/SubscriptionService.sol/SubscriptionService.json' with { type: 'json' };
-import { getUserWallet, mainDeployer, publicClient } from 'tests/mocks/anvil';
+import { getUserWallet, mainDeployer, publicClient, testClient } from 'tests/mocks/anvil';
 import { loadFixture } from '../utils/fixture';
 
 const { abi: SubscriptionServiceAbi } = artifact;
 
-async function fixture({ contracts }: any) {
+async function createTwoServices({ contracts }: any) {
     await mainDeployer.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
@@ -23,12 +23,20 @@ async function fixture({ contracts }: any) {
     });
 }
 
-test.describe('Full Orchestrated Flow', () => {
-  test.beforeEach(async ({ users, contracts }) => {
-    await loadFixture(fixture, { contracts })
+let cleanSnapshot: `0x${string}`;
+
+test.describe.only('Full Orchestrated Flow', () => {
+  test.beforeAll(async ({ contracts }) => {
+    await createTwoServices({ contracts });
+    cleanSnapshot = await testClient.snapshot();
+  });
+
+  test.beforeEach(async ({ users }) => {
+    await testClient.revert({ id: cleanSnapshot });
 
     const [{ page, wallet }] = users;
-    await page.goto('http://localhost:5173/subscriptions');
+
+    await page.goto('http://localhost:5173/subscriptions', { waitUntil: 'networkidle' });
     await initScript(page, 0, wallet.account.address);
   });
 
@@ -116,8 +124,10 @@ test.describe('Full Orchestrated Flow', () => {
   test('Multi-user interaction flow', async ({ users, contracts }) => {
     const [user1, user2] = users;
 
+    await expect(user1.page.locator('[data-testid^="service-"]')).toHaveCount(2, { timeout: 10000 });
+
     await user1.page.getByTestId('service-1').click();
-    await user1.page.waitForLoadState('networkidle')
+    await user1.page.waitForTimeout(500)
 
     await user1.page.getByTestId('subscribe-btn').click();
     await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });

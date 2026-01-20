@@ -1,14 +1,22 @@
-import { testClient } from "tests/mocks/anvil"
+import { testClient } from 'tests/mocks/anvil';
 
-const fixtureCache = new Map()
-export const loadFixture = async (fixtureFn: (args: any) => Promise<any>, args: any) => {
-  const cacheKey = fixtureFn.name || fixtureFn.toString()
-  
-  if (fixtureCache.has(cacheKey)) {
-    await testClient.revert({ id: fixtureCache.get(cacheKey) })
+const fixtureSnapshots = new Map<string, `0x${string}`>();
+
+export async function loadFixture<T>(
+  fixtureFn: (args: any) => Promise<T>,
+  args: any = {}
+): Promise<T> {
+  const cacheKey = fixtureFn.name || fixtureFn.toString();
+
+  if (fixtureSnapshots.has(cacheKey)) {
+    const snapshotId = fixtureSnapshots.get(cacheKey)!;
+    await testClient.revert({ id: snapshotId });
   } else {
-      fixtureCache.set(cacheKey, await testClient.snapshot())
-    }
+    await fixtureFn(args);
 
-  return fixtureFn(args)
+    const snapshotId = await testClient.snapshot();
+    fixtureSnapshots.set(cacheKey, snapshotId);
+  }
+
+  return fixtureFn(args);
 }
