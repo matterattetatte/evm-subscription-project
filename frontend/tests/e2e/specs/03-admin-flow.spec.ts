@@ -111,11 +111,15 @@ test.describe('Admin Flow – Owner Management', () => {
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
 
+    await page.waitForTimeout(200)
+    
     const nextId = await publicClient.readContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'nextServiceId',
     });
+
+    await page.waitForTimeout(200)
 
     await mainDeployer.writeContract({
       address: contracts.subscription,
@@ -125,9 +129,12 @@ test.describe('Admin Flow – Owner Management', () => {
       value: parseEther('0.01'),
     });
 
+    await page.waitForTimeout(200)
+
     await page.goto(`http://localhost:5173/admin/services/${nextId.toString()}`);
     await initScript(page, 0, wallet.account.address)
     await page.waitForSelector('text=Earnings: 0.01 ETH', { timeout: 5000 });
+    await page.waitForTimeout(200)
 
     await page.getByTestId('withdraw-earnings-btn').click();
     await page.waitForTimeout(200)

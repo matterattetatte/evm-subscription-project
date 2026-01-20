@@ -29,6 +29,7 @@ test.describe('Full Orchestrated Flow', () => {
 
     const [{ page, wallet }] = users;
 
+    await page.waitForTimeout(200)
     await page.goto('http://localhost:5173/subscriptions');
     await initScript(page, 0, wallet.account.address);
     await page.waitForTimeout(200)
@@ -52,6 +53,8 @@ test.describe('Full Orchestrated Flow', () => {
 
     await expect(page.getByText('Successful transaction')).toBeVisible();
     await expect(page.getByText('Active ✅')).toBeVisible();
+
+    await page.waitForTimeout(200)
 
     const subscription = await publicClient.readContract({
       address: contracts.subscription,
