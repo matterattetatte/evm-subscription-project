@@ -44,6 +44,8 @@ test.describe('Admin Flow – Owner Management', () => {
   test('Owner can manage service fee and status', async ({ users, contracts }) => {
     const [{ page, wallet }] = users;
 
+    await page.waitForTimeout(200)
+
     await wallet.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
@@ -137,7 +139,7 @@ test.describe('Admin Flow – Owner Management', () => {
     await page.waitForTimeout(200)
 
     await page.getByTestId('withdraw-earnings-btn').click();
-    await page.waitForTimeout(200)
+    await page.waitForTimeout(500)
 
     const earnings = await publicClient.readContract({
       address: contracts.subscription,

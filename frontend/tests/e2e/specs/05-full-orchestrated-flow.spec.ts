@@ -38,6 +38,8 @@ test.describe('Full Orchestrated Flow', () => {
   test('Complete user journey: browse → subscribe → extend → gift → verify', async ({ users, contracts }) => {
     const [{ page, wallet }] = users;
 
+    await page.waitForTimeout(200)
+
       const nextId = Number(await publicClient.readContract({
             address: contracts.subscription,
             abi: SubscriptionServiceAbi,

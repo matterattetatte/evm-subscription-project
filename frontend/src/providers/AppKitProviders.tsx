@@ -33,7 +33,7 @@ const localForkRpc = import.meta.env.VITE_LOCAL_FORK_RPC || 'http://127.0.0.1:85
 // In e2e, short-circuit AppKit remote fetches (wallet logos/config) to avoid noisy CORS errors.
 if (isE2E && typeof window !== 'undefined') {
   const stub = (fn: string) => {
-    console.info(`[APPKIT E2E] stubbed ${fn}`)
+    // console.info(`[APPKIT E2E] stubbed ${fn}`)
   }
 
   ApiController.fetchProjectConfig = async () => {

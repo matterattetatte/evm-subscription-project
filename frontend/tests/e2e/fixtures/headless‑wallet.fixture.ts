@@ -33,32 +33,38 @@ type UserPage = {
   index: number;
 };
 
+const sleep = (ms = 1000) => new Promise((r) => setTimeout(r, ms))
+
 async function ensureAnvil(testWorkerIndex: number) {
-  if (anvilReady) return anvilReady;
+  spawn(ANVIL_SCRIPT, { stdio: 'inherit', detached: true });
+  await sleep(5000)
+  await waitForRpcUp(20000) 
+  return true
+  // if (anvilReady) return anvilReady;
 
-  anvilReady = (async () => {
-    if (await waitForRpcUp(2000)) return;
+  // anvilReady = (async () => {
+  //   if (await waitForRpcUp(2000)) return;
 
-    if (testWorkerIndex === 0) {
-      spawn(ANVIL_SCRIPT, { stdio: 'inherit', detached: true });
-      const ok = await waitForRpcUp(20000);
-      if (!ok) throw new Error(`Failed to start anvil at ${LOCAL_RPC}`);
-    } else {
-      const ok = await waitForRpcUp(20000);
-      if (!ok) throw new Error('Node not reachable on worker');
-    }
-  })();
+  //   if (testWorkerIndex === 0) {
+  //     spawn(ANVIL_SCRIPT, { stdio: 'inherit', detached: true });
+  //     const ok = await waitForRpcUp(20000);
+  //     if (!ok) throw new Error(`Failed to start anvil at ${LOCAL_RPC}`);
+  //   } else {
+  //     const ok = await waitForRpcUp(20000);
+  //     if (!ok) throw new Error('Node not reachable on worker');
+  //   }
+  // })();
 
-  return anvilReady;
+  // return anvilReady;
 }
 
 async function deployContracts() {
-  if (existsSync('.env.local') && readFileSync('.env.local', 'utf-8').includes('VITE_SUBSCRIPTION_SERVICE_ADDRESS=')) {
-    const content = readFileSync('.env.local', 'utf-8');
-    const timeOracle = content.match(/VITE_TIME_ORACLE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
-    const subscription = content.match(/VITE_SUBSCRIPTION_SERVICE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
-    if (timeOracle && subscription) return { timeOracle, subscription };
-  }
+  // if (existsSync('.env.local') && readFileSync('.env.local', 'utf-8').includes('VITE_SUBSCRIPTION_SERVICE_ADDRESS=')) {
+  //   const content = readFileSync('.env.local', 'utf-8');
+  //   const timeOracle = content.match(/VITE_TIME_ORACLE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
+  //   const subscription = content.match(/VITE_SUBSCRIPTION_SERVICE_ADDRESS=(0x[a-fA-F0-9]{40})/)?.[1];
+  //   if (timeOracle && subscription) return { timeOracle, subscription };
+  // }
 
   const timeArtifact = JSON.parse(
     readFileSync(join(process.cwd(), 'src/abis/MockTimeOracle.sol/MockTimeOracle.json'), 'utf-8')
