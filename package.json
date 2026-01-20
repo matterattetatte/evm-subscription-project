@@ -4,6 +4,7 @@
   },
   "scripts": {
     "deploy:local": "export $(grep -v '^#' .env.local | xargs) && cd packages/contracts && forge script script/Deploy.s.sol:Deploy --rpc-url localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast -vvvv",
-    "deploy:sepolia": "export $(grep -v '^#' .env | xargs) && cd packages/contracts && forge script script/Deploy.s.sol:Deploy --rpc-url https://sepolia.etherscan.io --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
+    "deploy:sepolia": "export $(grep -v '^#' .env | xargs) && cd packages/contracts && forge clean && forge script script/Deploy.s.sol:Deploy --rpc-url https://ethereum-sepolia-rpc.publicnode.com --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv",
+    "verify:sepolia": "export $(grep -v '^#' .env | xargs) && cd packages/contracts && forge verify-contract --rpc-url https://ethereum-sepolia-rpc.publicnode.com --chain-id 11155111 --etherscan-api-key $ETHERSCAN_API_KEY --watch 0xa65f2455a4c69ec181a05acc2a2975ff61d3b5f3"
   }
 }
