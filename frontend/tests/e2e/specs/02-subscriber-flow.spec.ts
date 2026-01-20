@@ -10,28 +10,17 @@ test.describe('Subscriber Flow – Happy Paths', () => {
   test.beforeEach(async ({ users, contracts }) => {
     const [{ page, wallet }] = users;
 
-    const hash = await mainDeployer.writeContract({
+    await mainDeployer.writeContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'createService',
       args: [parseEther('0.01'), BigInt(30 * 24 * 60 * 60)],
     });
 
-    await publicClient.waitForTransactionReceipt({ hash });
-
-    await publicClient.readContract({
-      address: contracts.subscription,
-      abi: SubscriptionServiceAbi,
-      functionName: 'nextServiceId',
-    });
-
+    await page.waitForTimeout(100)
     await page.goto('http://localhost:5173/subscriptions');
 
     await initScript(page, 0, wallet.account.address);
-
-    await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
-      timeout: 15000,
-    });
   });
 
   test('User can see available subscription services', async ({ users }) => {

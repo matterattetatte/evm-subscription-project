@@ -17,6 +17,8 @@ const AdminSubscriptionHandling: React.FC = () => {
 
   const { data: receiptData, error: receiptError } = useWaitForTransactionReceipt({ hash });
 
+  console.log('data:', receiptData, 'error', receiptError)
+
   const { data: serviceData } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: SubscriptionServiceAbi,

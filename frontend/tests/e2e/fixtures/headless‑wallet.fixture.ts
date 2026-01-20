@@ -107,7 +107,7 @@ export const test = base.extend<{
     { scope: 'worker', auto: true },
   ],
 
-  contracts: async ({ anvil }, use, testInfo) => {
+  contracts: async ({}, use, testInfo) => {
     if (testInfo.workerIndex !== 0) {
       await new Promise(r => setTimeout(r, 5000));
     }
@@ -116,7 +116,7 @@ export const test = base.extend<{
     await use(addresses);
   },
 
-  users: async ({ browser, contracts }, use, testInfo) => {
+  users: async ({ browser }, use, testInfo) => {
     const users: UserPage[] = [];
 
     await Promise.all(

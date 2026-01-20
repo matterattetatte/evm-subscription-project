@@ -41,9 +41,15 @@ export const initScript = async (page: Page, index: number, address: Address) =>
     anvilIndex: index
   });
 
-  await page.waitForFunction(() => !!window.ethereum && !!window.ethereum.selectedAddress, {
-    timeout: 15000,
-  });
+  await page.waitForFunction(
+    () => {
+      if (!window.ethereum) return false;
+
+      return window.ethereum.request({ method: 'eth_accounts' })
+        .then((accounts: string[]) => accounts.length > 0);
+    },
+    { timeout: 15000 }
+  );
 }
 
 export const debugContractRequest = async (page: Page, abi: Abi, actionsFn: () => Promise<void>) => {

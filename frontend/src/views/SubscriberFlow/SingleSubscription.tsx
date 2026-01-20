@@ -110,6 +110,10 @@ const SingleSubscription: React.FC = () => {
   };
 
   useEffect(() => {
+    if (receiptError) {
+      console.log(receiptError)
+    }
+
     if (isSuccess || writeError || receiptError) {
       setIsSubscribing(false);
       if (isSuccess) {

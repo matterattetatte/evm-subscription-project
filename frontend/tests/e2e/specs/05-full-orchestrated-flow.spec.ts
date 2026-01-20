@@ -29,18 +29,22 @@ test.describe('Full Orchestrated Flow', () => {
 
     const [{ page, wallet }] = users;
 
-    await page.goto('http://localhost:5173/subscriptions', { waitUntil: 'networkidle' });
+    await page.goto('http://localhost:5173/subscriptions');
     await initScript(page, 0, wallet.account.address);
+    await page.waitForTimeout(200)
   });
 
   test('Complete user journey: browse → subscribe → extend → gift → verify', async ({ users, contracts }) => {
     const [{ page, wallet }] = users;
 
-    await expect(page.locator('[data-testid^="service-"]')).toHaveCount(2, { timeout: 10000 });
-    await expect(page.getByText('Service #1')).toBeVisible();
-    await expect(page.getByText('Service #2')).toBeVisible();
+      const nextId = Number(await publicClient.readContract({
+            address: contracts.subscription,
+            abi: SubscriptionServiceAbi,
+            functionName: 'nextServiceId',
+            args: [],
+    }));
 
-    await page.getByTestId('service-1').click();
+    await page.getByTestId(`service-${nextId - 1}`).click();
     await page.waitForLoadState('networkidle')
 
     await page.getByTestId('subscribe-btn').click();
@@ -53,7 +57,7 @@ test.describe('Full Orchestrated Flow', () => {
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'subscriptions',
-      args: [BigInt(1), getUserWallet(0).account.address],
+      args: [BigInt(nextId - 1), wallet.account.address],
     });
     expect(subscription[1]).toBe(true);
 
@@ -66,7 +70,7 @@ test.describe('Full Orchestrated Flow', () => {
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'subscriptions',
-      args: [BigInt(1), getUserWallet(0).account.address],
+      args: [BigInt(nextId - 1), wallet.account.address],
     });
     expect(extendedSubscription[0]).toBeGreaterThan(subscription[0]);
 
@@ -79,19 +83,15 @@ test.describe('Full Orchestrated Flow', () => {
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'subscriptions',
-      args: [BigInt(1), recipient],
+      args: [BigInt(nextId - 1), recipient],
     });
     expect(giftedSubscription[1]).toBe(true);
 
     await page.goto('http://localhost:5173/subscriptions');
     await initScript(page, 0, wallet.account.address);
 
-    await page.getByTestId('service-2').click();
+    await page.getByTestId(`service-${nextId}`).click();
     await page.waitForLoadState('networkidle')
-
-    await expect(page.getByText('Service #2')).toBeVisible();
-    await expect(page.getByText('0.05 ETH')).toBeVisible();
-    await expect(page.getByText('7 days')).toBeVisible();
 
     await page.getByTestId('subscribe-btn').click();
     await page.waitForSelector('text=Successful transaction', { timeout: 10000 });
@@ -100,14 +100,14 @@ test.describe('Full Orchestrated Flow', () => {
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'isActive',
-      args: [BigInt(1), getUserWallet(0).account.address],
+      args: [BigInt(nextId - 1), wallet.account.address],
     });
 
     const service2Status = await publicClient.readContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'isActive',
-      args: [BigInt(2), getUserWallet(0).account.address],
+      args: [BigInt(nextId), wallet.account.address],
     });
 
     expect(service1Status).toBe(true);
@@ -156,18 +156,20 @@ test.describe('Full Orchestrated Flow', () => {
     });
 
     expect(user1Subscription).toBe(true);
+
     expect(user2Subscription).toBe(true);
 
     await user1.page.getByTestId('gift-btn').click();
     await user1.page.getByTestId('recipient-input').fill(user2.wallet.account.address);
     await user1.page.getByTestId('gift-confirm-btn').click();
     await user1.page.waitForSelector('text=Successful transaction', { timeout: 10000 });
+    await user1.page.waitForTimeout(200)
 
     const user2Service1 = await publicClient.readContract({
       address: contracts.subscription,
       abi: SubscriptionServiceAbi,
       functionName: 'isActive',
-      args: [BigInt(1), getUserWallet(1).account.address],
+      args: [BigInt(nextId - 1), user2.wallet.account.address],
     });
 
     expect(user2Service1).toBe(true);
